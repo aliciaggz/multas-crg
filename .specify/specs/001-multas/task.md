@@ -1,6 +1,6 @@
 # Tareas: Multas CR Guindalera
 
-Orden: cada tarea depende de las anteriores salvo que se indique. Una tarea por sesión con la IA. En las tareas de reglas: tests primero, luego código, luego revisión humana del diff. Antes de T3, confirmar los dos supuestos de la spec.
+Orden: cada tarea depende de las anteriores salvo que se indique. Una tarea por sesión con la IA. En las tareas de reglas: tests primero, luego código, luego revisión humana del diff.
 
 ## Fase 0: Preparación
 
@@ -23,13 +23,13 @@ Orden: cada tarea depende de las anteriores salvo que se indique. Una tarea por 
 - Escribir los tests antes: casos 0, 5, 6, 19, 20 y 45 minutos.
 - **Hecho cuando:** todos los tests pasan. Llegar a las 15:05 para una convocatoria de las 15:00 da 0 €.
 
-**T3. Contador y escalones.** `contarFaltas(multas)` (solo conceptos con `cuenta_asistencia`, sin anuladas) y `escalonesPendientes(faltas, cobrados)`. _Hecho cuando:_ tests para 0, 2, 3, 4, 6, 7, 9 y 12 faltas, con y sin escalones cobrados, incluyendo llegar a 9 sin ninguno registrado (devuelve los tres).
+**T3. Contador y escalones.** `contarFaltas(multas)` (solo conceptos con `cuenta_asistencia`, sin anuladas) y `escalonesPendientes(faltas, registrados)` (propone la diferencia hasta el total del escalón más alto alcanzado). _Hecho cuando:_ tests para 0, 2, 3, 4, 6, 7, 9 y 12 faltas, con y sin escalones registrados. Si se llega a 9 sin ninguno registrado, la única propuesta es de 8 €.
 
 **T4. Importes, vencimiento y estados.** `importeRegistro` (x cantidad, x2 capitana), `estaVencida`, `estadoMulta` e `importeActual` (duplica si vencida). _Hecho cuando:_ tests para pendiente a 14, 15 y 16 días; multa pagada; capitana vencida (x4); pago declarado a los 14 días y evaluado a los 20 (no vencida); pago declarado a los 16 días (vencida); pago rechazado evaluado a los 20 días (vencida).
 
 ### T5. Saldos y hucha
 
-- `saldoJugadora(multas, hoy)`: suma de multas pendientes con su importe actual.
+- `saldoJugadora(multas, hoy)`: suma de multas pendientes y de pagos por verificar con su importe actual.
 - `saldoHucha(hucha_inicial, movimientos)`: inicial + suma de movimientos.
 - **Hecho cuando:** tests con varios casos mezclados (pagadas, vencidas, pendientes, movimientos negativos).
 

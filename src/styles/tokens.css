@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+  color-scheme: light;
+  --color-primario: #0f172a;
+  --color-tarjeta-oscura: #111d3b;
+  --color-rojo: #be123c;
+  --color-rojo-claro: #fff0f2;
+  --color-dorado: #d4af37;
+  --color-dorado-oscuro: #765900;
+  --color-gris: #64748b;
+  --color-fondo: #f7f6f4;
+  --color-superficie: #fff;
+  --color-borde: #e1e5ed;
+  --color-suave: #eef2f8;
+  --color-verde: #067058;
+  --color-verde-claro: #e9f7ef;
+  --fuente-texto: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --fuente-etiqueta: 'Space Grotesk', var(--fuente-texto);
+  --ancho-contenido: 39rem;
+  --radio-tarjeta: 1.125rem;
+  --sombra-tarjeta: 0 1px 3px rgb(15 23 42 / 5%);
+}
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: var(--color-primario);
+  font-family: var(--fuente-texto);
+}

@@ -77,7 +77,7 @@ Nota del PDF: "Cuerpo técnico y capitanes x2".
 3. **Llegada tarde a partidos.** Los minutos se cuentan desde la hora de convocatoria. Hasta 5 min: sin multa. De 6 a 19 min: `par_tarde` (3 €). Desde 20 min: `par_tarde_20` (7 €, sustituye a los 3 €, no se suma).
 4. **Llegada tarde a entrenos.** Sin tiempo de cortesía: cualquier retraso son 2 €.
 5. **Contador de faltas de asistencia.** Cuenta solo faltas a entrenos, justificadas o no (los tres conceptos marcados "Sí"). Las faltas a partidos no cuentan. Las multas anuladas no cuentan. Se reinicia cada temporada.
-6. **Escalones.** Son cobros independientes: 4 € al llegar a 3 faltas, 6 € a las 6 y 8 € a las 9 (18 € en total a las 9 faltas). Cada escalón se cobra una sola vez por temporada. No hay escalones más allá de 9. La app propone el escalón al alcanzarlo y el entrenador lo confirma. Si falta algún escalón anterior sin registrar, se proponen todos los pendientes.
+6. **Escalones.** El total base por escalones en una temporada es de 4 € al alcanzar 3 faltas, 6 € al alcanzar 6 y 8 € desde las 9. La app propone una sola multa por el escalón más alto alcanzado, por la diferencia entre su total y los importes base de escalones vigentes ya registrados, estén pendientes o pagados. Por ejemplo, con 4 € ya registrados, al alcanzar 6 faltas se proponen 2 €. Si se llega a 9 faltas sin registros previos, se proponen 8 €. El entrenador confirma la propuesta. El multiplicador de capitana se aplica a la diferencia.
 7. **Plazo de pago y vencimiento.** El plazo es de 15 días desde la fecha de la multa. Una multa está **vencida** cuando han pasado más de 15 días y:
    - está Pendiente, o
    - está pendiente de verificar y la jugadora declaró el pago **después** de esos 15 días.
@@ -121,11 +121,6 @@ Nota del PDF: "Cuerpo técnico y capitanes x2".
 ## Fuera de alcance (v1)
 
 Pagos online o Bizum, notificaciones push (se hacen después de la v1), estadísticas, fotos, biometría, objetivos de hucha, consecuencias asociadas a los escalones, gestión de convocatorias y cuerpo técnico en la lista.
-
-## Supuestos a confirmar
-
-1. Escalones acumulativos: 18 € en total a las 9 faltas (regla 6).
-2. Las faltas con aviso de 4 h o más suman al contador aunque no tengan multa (regla 5).
 
 ## Fuera de alcance (v1)
 

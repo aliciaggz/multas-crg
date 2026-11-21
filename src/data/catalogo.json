@@ -1,0 +1,164 @@
+[
+  {
+    "id": "ent_tarde",
+    "grupo": "entreno",
+    "nombre": "Llegar tarde",
+    "descripcion": "Cualquier retraso al entrenamiento, sin tiempo de cortesía.",
+    "importe": 2,
+    "tipo": "fijo",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "ent_falta_sin_aviso",
+    "grupo": "entreno",
+    "nombre": "Faltar sin avisar",
+    "descripcion": "Faltar al entrenamiento sin avisar.",
+    "importe": 5,
+    "tipo": "fijo",
+    "cuenta_asistencia": true
+  },
+  {
+    "id": "ent_falta_menos_4h",
+    "grupo": "entreno",
+    "nombre": "Faltar avisando con menos de 4 h",
+    "descripcion": "Avisar de la falta al entrenamiento con menos de 4 horas de antelación.",
+    "importe": 3,
+    "tipo": "fijo",
+    "cuenta_asistencia": true
+  },
+  {
+    "id": "ent_falta_con_aviso",
+    "grupo": "entreno",
+    "nombre": "Faltar avisando con 4 h o más",
+    "descripcion": "Avisar de la falta al entrenamiento con al menos 4 horas de antelación.",
+    "importe": 0,
+    "tipo": "fijo",
+    "cuenta_asistencia": true
+  },
+  {
+    "id": "ent_uniforme",
+    "grupo": "entreno",
+    "nombre": "Mal uniformado",
+    "descripcion": "Se cobra por prenda, incluidas botas, ropa y pendientes.",
+    "importe": 1,
+    "tipo": "por_prenda",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "ent_respeto",
+    "grupo": "entreno",
+    "nombre": "Falta de respeto",
+    "descripcion": "Falta de respeto durante el entrenamiento.",
+    "importe": 6,
+    "tipo": "fijo",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "esc_3",
+    "grupo": "escalon",
+    "nombre": "3 faltas de asistencia",
+    "descripcion": "Escalón al alcanzar 3 faltas a entrenamientos en la temporada.",
+    "importe": 4,
+    "tipo": "escalon",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "esc_6",
+    "grupo": "escalon",
+    "nombre": "6 faltas de asistencia",
+    "descripcion": "Escalón al alcanzar 6 faltas a entrenamientos en la temporada.",
+    "importe": 6,
+    "tipo": "escalon",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "esc_9",
+    "grupo": "escalon",
+    "nombre": "9 faltas de asistencia",
+    "descripcion": "Escalón al alcanzar 9 faltas a entrenamientos en la temporada.",
+    "importe": 8,
+    "tipo": "escalon",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_tarde",
+    "grupo": "partido",
+    "nombre": "Llegar tarde",
+    "descripcion": "Llegar entre 6 y 19 minutos después de la hora de convocatoria.",
+    "importe": 3,
+    "tipo": "tardanza",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_tarde_20",
+    "grupo": "partido",
+    "nombre": "Llegar 20 minutos o más tarde",
+    "descripcion": "Desde 20 minutos después de la hora de convocatoria, este importe sustituye al del tramo anterior.",
+    "importe": 7,
+    "tipo": "tardanza",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_no_asiste_local",
+    "grupo": "partido",
+    "nombre": "No asistir al partido siendo local",
+    "descripcion": "Las jugadoras desconvocadas deben asistir a la grada en los partidos de local.",
+    "importe": 5,
+    "tipo": "fijo",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_falta",
+    "grupo": "partido",
+    "nombre": "Faltar sin avisar o avisando el mismo día",
+    "descripcion": "Faltar al partido sin avisar o avisar el día del partido.",
+    "importe": 20,
+    "tipo": "fijo",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_convocatoria",
+    "grupo": "partido",
+    "nombre": "Ropa de convocatoria incorrecta",
+    "descripcion": "Se cobra por cada prenda de convocatoria incorrecta.",
+    "importe": 1,
+    "tipo": "por_prenda",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_equipacion",
+    "grupo": "partido",
+    "nombre": "Equipación del partido incorrecta",
+    "descripcion": "Se cobra por cada prenda incorrecta: botas, medias, camiseta, pantalón o espinilleras.",
+    "importe": 3,
+    "tipo": "por_prenda",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_respeto",
+    "grupo": "partido",
+    "nombre": "Falta de respeto a entrenador, árbitro o rival",
+    "descripcion": "Falta de respeto al entrenador, al árbitro o a un rival.",
+    "importe": 5,
+    "tipo": "fijo",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_amarilla",
+    "grupo": "partido",
+    "nombre": "Amarilla por protestar",
+    "descripcion": "Tarjeta amarilla por protestar durante el partido.",
+    "importe": 5,
+    "tipo": "fijo",
+    "cuenta_asistencia": false
+  },
+  {
+    "id": "par_expulsion",
+    "grupo": "partido",
+    "nombre": "Expulsión sin lance de juego",
+    "descripcion": "Expulsión por un motivo ajeno a un lance del juego.",
+    "importe": 10,
+    "tipo": "fijo",
+    "cuenta_asistencia": false
+  }
+]

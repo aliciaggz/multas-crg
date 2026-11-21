@@ -109,14 +109,14 @@ create table staff (
 ## Reglas que calcula el código (`reglas.ts`)
 
 - **Llegada tarde a partidos:** hasta 5 min no genera multa. Del minuto 6 al 19, 3 €. A partir de 20 min, 7 € (sustituye, no suma).
-- **Escalones de asistencia:** se cuentan las faltas de asistencia de la jugadora en la temporada. Al llegar a 3, 6 o 9, la app propone el escalón (4 €, 6 € u 8 €) y el staff confirma. Cada escalón se cobra una sola vez por temporada.
+- **Escalones de asistencia:** los importes de catálogo (4 €, 6 € y 8 €) son los totales base por temporada a las 3, 6 y 9 faltas. La app propone solo la diferencia entre el total del escalón más alto alcanzado y los importes base de escalones vigentes ya registrados. El staff confirma la propuesta.
 - **Plazo de 15 días:** calculado en la vista, no guardado. Pasado el plazo sin pagar, el importe se duplica y la jugadora aparece como no convocable.
-- **Saldo de jugadora:** suma de multas pendientes de la temporada activa.
+- **Saldo de jugadora:** suma de los importes actuales de las multas pendientes y de los pagos por verificar de la temporada activa.
 - **Hucha:** `hucha_inicial` + movimientos de la temporada.
 
 ## Reglas en `reglas.ts`
 
-`importeRegistro(concepto, cantidad, capitana)`, `conceptoTardanzaPartido(minutos)`, `contarFaltas(multas)`, `escalonesPendientes(faltas, cobrados)`, `estaVencida(multa, hoy)`, `estadoMulta(multa, hoy)`, `importeActual(multa, hoy)`, `saldoJugadora(multas, hoy)`, `noConvocable(multas, hoy)`, `saldoHucha(inicial, multasPagadas, gastos)`.
+`importeRegistro(concepto, cantidad, capitana)`, `conceptoTardanzaPartido(minutos)`, `contarFaltas(multas)`, `escalonesPendientes(faltas, registrados)`, `estaVencida(multa, hoy)`, `estadoMulta(multa, hoy)`, `importeActual(multa, hoy)`, `saldoJugadora(multas, hoy)`, `noConvocable(multas, hoy)`, `saldoHucha(inicial, movimientos)`.
 
 Regla de vencimiento (spec, regla 7):
 `estaVencida = (estado == 'pendiente' && hoy > fecha + 15 días) || (estado == 'pago_declarado' && declarada_en > fecha + 15 días)`
