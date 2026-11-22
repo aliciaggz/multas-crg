@@ -1,23 +1,43 @@
-type Temporada = {
-  id: string;
-  nombre: string;
-  activa: boolean;
+import type {
+  Jugadora,
+  Multa,
+  ResumenTemporada,
+  Temporada,
+} from "../data/temporadas-demo";
+import type { RegistroMulta } from "./registro-multas";
+
+type FilaTemporada = Omit<ResumenTemporada, "huchaInicial"> & {
   hucha_inicial: number;
+};
+type FilaJugadora = Jugadora & { activa: boolean };
+type FilaMulta = Omit<Multa, "declarada_en" | "fecha_pago"> & {
+  declarada_en: string | null;
+  fecha_pago: string | null;
 };
 
 type Tabla = "temporadas" | "jugadoras" | "multas" | "gastos_hucha";
 
-async function leer<T>(
-  tabla: Tabla,
-  columnas: string,
-  filtros: Record<string, string> = {},
-): Promise<T[]> {
+export type CredencialesStaff = { usuario: string; pin: string };
+export type RespuestaRpc<T extends object> =
+  | ({ ok: true } & T)
+  | { ok: false; error: string };
+
+function configuracionSupabase() {
   const urlProyecto = import.meta.env.VITE_SUPABASE_URL?.trim();
   const clave = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 
   if (!urlProyecto || !clave?.startsWith("sb_publishable_")) {
     throw new Error("Revisa la URL y la clave publicable en .env.local.");
   }
+  return { urlProyecto, clave };
+}
+
+export async function leer<T>(
+  tabla: Tabla,
+  columnas: string,
+  filtros: Record<string, string> = {},
+): Promise<T[]> {
+  const { urlProyecto, clave } = configuracionSupabase();
 
   const url = new URL(`/rest/v1/${tabla}`, urlProyecto);
   const resultados: T[] = [];
@@ -34,6 +54,8 @@ async function leer<T>(
 
     const respuesta = await fetch(url, {
       headers: { apikey: clave },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!respuesta.ok) {
@@ -49,24 +71,94 @@ async function leer<T>(
   }
 }
 
-export async function leerTemporadaActiva() {
-  const temporadas = await leer<Temporada>(
+export async function leerDatosPublicos(idElegida?: string) {
+  const filas = await leer<FilaTemporada>(
     "temporadas",
     "id,nombre,activa,hucha_inicial",
   );
-  const activa = temporadas.find((temporada) => temporada.activa);
-  if (!activa) throw new Error("No hay ninguna temporada activa en Supabase.");
+  const temporadas: ResumenTemporada[] = filas.map(
+    ({ hucha_inicial, ...fila }) => ({
+      ...fila,
+      huchaInicial: hucha_inicial,
+    }),
+  );
+  temporadas.sort(
+    (a, b) =>
+      Number(b.activa) - Number(a.activa) ||
+      b.nombre.localeCompare(a.nombre, "es"),
+  );
 
-  const porTemporada = { temporada_id: `eq.${activa.id}` };
+  const elegida =
+    temporadas.find(({ id }) => id === idElegida) ??
+    temporadas.find(({ activa }) => activa);
+  if (!elegida) throw new Error("No hay una temporada activa en Supabase.");
+
+  const filtro = { temporada_id: `eq.${elegida.id}` };
   const [jugadoras, multas, gastos] = await Promise.all([
-    leer("jugadoras", "id,nombre,dorsal,capitana,activa"),
-    leer(
+    leer<FilaJugadora>("jugadoras", "id,nombre,dorsal,capitana,activa"),
+    leer<FilaMulta>(
       "multas",
-      "id,jugadora_id,concepto_id,importe,importe_cobrado,fecha,estado,declarada_en,fecha_pago",
-      porTemporada,
+      "id,jugadora_id,concepto_id,importe,importe_cobrado,multiplicador,fecha,estado,declarada_en,fecha_pago",
+      filtro,
     ),
-    leer("gastos_hucha", "id,fecha,importe,motivo", porTemporada),
+    leer<Temporada["gastos"][number]>(
+      "gastos_hucha",
+      "id,fecha,importe,motivo",
+      filtro,
+    ),
   ]);
 
-  return { temporadas, activa, jugadoras, multas, gastos };
+  // La tabla jugadoras es común. Conserva también las bajas con historial en la temporada.
+  const conHistorial = new Set(
+    multas
+      .filter(({ estado }) => estado !== "anulada")
+      .map(({ jugadora_id }) => jugadora_id),
+  );
+  const temporada: Temporada = {
+    ...elegida,
+    jugadoras: jugadoras
+      .filter(({ activa, id }) => activa || conHistorial.has(id))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    multas: multas.map(({ declarada_en, fecha_pago, ...multa }) => ({
+      ...multa,
+      declarada_en: declarada_en ?? undefined,
+      fecha_pago: fecha_pago ?? undefined,
+    })),
+    gastos,
+  };
+
+  return { temporadas, temporada };
+}
+
+async function llamarRpc<T extends object>(
+  funcion: "login_staff" | "registrar_multa",
+  parametros: object,
+): Promise<RespuestaRpc<T>> {
+  const { urlProyecto, clave } = configuracionSupabase();
+  const respuesta = await fetch(
+    new URL(`/rest/v1/rpc/${funcion}`, urlProyecto),
+    {
+      method: "POST",
+      headers: { apikey: clave, "Content-Type": "application/json" },
+      body: JSON.stringify(parametros),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    },
+  );
+  if (!respuesta.ok) throw new Error(`Supabase: HTTP ${respuesta.status}`);
+  return respuesta.json();
+}
+
+export function loginStaff(credenciales: CredencialesStaff) {
+  return llamarRpc<{ usuario: string }>("login_staff", credenciales);
+}
+
+export function registrarMulta(
+  credenciales: CredencialesStaff,
+  multa: RegistroMulta,
+) {
+  return llamarRpc<{ id: string }>("registrar_multa", {
+    ...credenciales,
+    ...multa,
+  });
 }

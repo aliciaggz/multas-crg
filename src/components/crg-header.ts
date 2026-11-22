@@ -1,18 +1,23 @@
-import { css, html, LitElement, nothing } from 'lit';
-import type { Temporada } from '../data/temporadas-demo';
+import { css, html, LitElement, nothing } from "lit";
+import type { ResumenTemporada } from "../data/temporadas-demo";
 
 class CrgHeader extends LitElement {
   static properties = {
-    temporadas: { attribute: false }, seleccionada: { type: String },
-    usuarioDemo: { type: String }, enStaff: { type: Boolean },
+    temporadas: { attribute: false },
+    seleccionada: { type: String },
+    usuarioDemo: { type: String },
+    enStaff: { type: Boolean },
   };
-  declare temporadas: readonly Temporada[];
+  declare temporadas: readonly ResumenTemporada[];
   declare seleccionada: string;
   declare usuarioDemo: string;
   declare enStaff: boolean;
 
   static styles = css`
-    :host { display: block; border-bottom: 1px solid var(--color-borde); }
+    :host {
+      display: block;
+      border-bottom: 1px solid var(--color-borde);
+    }
     header {
       max-width: var(--ancho-contenido);
       margin: auto;
@@ -31,8 +36,18 @@ class CrgHeader extends LitElement {
       background: var(--color-tarjeta-oscura);
       box-shadow: var(--sombra-tarjeta);
     }
-    .escudo span, .escudo span::after {
-      clip-path: polygon(50% 0, 100% 16%, 100% 55%, 84% 78%, 50% 100%, 16% 78%, 0 55%, 0 16%);
+    .escudo span,
+    .escudo span::after {
+      clip-path: polygon(
+        50% 0,
+        100% 16%,
+        100% 55%,
+        84% 78%,
+        50% 100%,
+        16% 78%,
+        0 55%,
+        0 16%
+      );
     }
     .escudo span {
       display: grid;
@@ -42,14 +57,32 @@ class CrgHeader extends LitElement {
       background: var(--color-dorado);
     }
     .escudo span::after {
-      content: '';
+      content: "";
       width: 0.9rem;
       height: 1.08rem;
-      background: linear-gradient(135deg, var(--color-tarjeta-oscura) 51%, var(--color-dorado) 52% 63%, var(--color-tarjeta-oscura) 64%);
+      background: linear-gradient(
+        135deg,
+        var(--color-tarjeta-oscura) 51%,
+        var(--color-dorado) 52% 63%,
+        var(--color-tarjeta-oscura) 64%
+      );
     }
-    strong { display: block; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.035em; }
-    .temporada { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.2rem; }
-    .equipo { color: var(--color-rojo); font: 600 0.72rem var(--fuente-etiqueta); }
+    strong {
+      display: block;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+    }
+    .temporada {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      column-gap: 0.2rem;
+    }
+    .equipo {
+      color: var(--color-rojo);
+      font: 600 0.72rem var(--fuente-etiqueta);
+    }
     select {
       min-height: 44px;
       min-width: 4.25rem;
@@ -72,13 +105,21 @@ class CrgHeader extends LitElement {
       box-shadow: var(--sombra-tarjeta);
       text-decoration: none;
     }
-    .staff[aria-current='page'] { color: var(--color-rojo); border-color: var(--color-rojo); }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    .staff[aria-current="page"] {
+      color: var(--color-rojo);
+      border-color: var(--color-rojo);
+    }
+    :focus-visible {
+      outline: 2px solid var(--color-rojo);
+      outline-offset: 2px;
+    }
   `;
 
   private cambiarTemporada(evento: Event) {
     const select = evento.currentTarget as HTMLSelectElement;
-    this.dispatchEvent(new CustomEvent('temporada-cambiada', { detail: select.value }));
+    this.dispatchEvent(
+      new CustomEvent("temporada-cambiada", { detail: select.value }),
+    );
   }
 
   render() {
@@ -89,15 +130,36 @@ class CrgHeader extends LitElement {
           <strong>CR Guindalera</strong>
           <div class="temporada">
             <span class="equipo">Senior femenino</span>
-            <select aria-label="Temporada" .value=${this.seleccionada} @change=${this.cambiarTemporada}>
-              ${this.temporadas.map((temporada) => html`<option value=${temporada.id}>${temporada.nombre}</option>`)}
-            </select>
+            ${this.temporadas.length
+              ? html`
+                  <select
+                    aria-label="Temporada"
+                    @change=${this.cambiarTemporada}
+                  >
+                    ${this.temporadas.map(
+                      (temporada) => html`
+                        <option
+                          value=${temporada.id}
+                          .selected=${temporada.id === this.seleccionada}
+                        >
+                          ${temporada.nombre}
+                        </option>
+                      `,
+                    )}
+                  </select>
+                `
+              : nothing}
           </div>
         </div>
-        <a class="staff" href="#staff" aria-current=${this.enStaff ? 'page' : nothing}>${this.usuarioDemo || 'Staff'}</a>
+        <a
+          class="staff"
+          href="#staff"
+          aria-current=${this.enStaff ? "page" : nothing}
+          >${this.usuarioDemo || "Staff"}</a
+        >
       </header>
     `;
   }
 }
 
-customElements.define('crg-header', CrgHeader);
+customElements.define("crg-header", CrgHeader);
