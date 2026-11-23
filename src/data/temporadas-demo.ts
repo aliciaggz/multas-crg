@@ -27,7 +27,7 @@ export type AjusteHucha = {
   nuevo: number;
   motivo: string;
   fecha: string;
-  usuario: string;
+  usuario?: string;
   registrado_en: string;
 };
 

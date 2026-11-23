@@ -269,6 +269,11 @@ class CrgNuevaSancion extends LitElement {
     .confirmacion {
       color: var(--color-verde);
     }
+    .confirmacion a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+    }
     .escalon {
       margin-top: 0.65rem;
     }

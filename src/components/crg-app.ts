@@ -129,12 +129,11 @@ class CrgApp extends LitElement {
     .hucha img {
       position: absolute;
       right: 0.65rem;
-      bottom: 0;
+      bottom: -0.5rem;
       z-index: -1;
-      width: 6rem;
-      height: 6rem;
-      border-radius: 1rem 1rem 0 0;
-      object-fit: cover;
+      width: 11rem;
+      height: auto;
+      object-fit: contain;
     }
     .estado-carga {
       margin: 0 0 1rem;
@@ -458,7 +457,7 @@ class CrgApp extends LitElement {
           ${pendientes.length === 1 ? "multa pendiente" : "multas pendientes"}
         </p>
         <img
-          src=${`${import.meta.env.BASE_URL}nacho-pig.png`}
+          src=${`${import.meta.env.BASE_URL}nacho-pig-1.png`}
           width="96"
           height="96"
           alt=""

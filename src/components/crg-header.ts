@@ -32,42 +32,7 @@ class CrgHeader extends LitElement {
     .escudo {
       width: 2.75rem;
       height: 2.75rem;
-      border-radius: 0.85rem;
-      display: grid;
-      place-items: center;
-      background: var(--color-tarjeta-oscura);
-      box-shadow: var(--sombra-tarjeta);
-    }
-    .escudo span,
-    .escudo span::after {
-      clip-path: polygon(
-        50% 0,
-        100% 16%,
-        100% 55%,
-        84% 78%,
-        50% 100%,
-        16% 78%,
-        0 55%,
-        0 16%
-      );
-    }
-    .escudo span {
-      display: grid;
-      place-items: center;
-      width: 1.2rem;
-      height: 1.42rem;
-      background: var(--color-dorado);
-    }
-    .escudo span::after {
-      content: "";
-      width: 0.9rem;
-      height: 1.08rem;
-      background: linear-gradient(
-        135deg,
-        var(--color-tarjeta-oscura) 51%,
-        var(--color-dorado) 52% 63%,
-        var(--color-tarjeta-oscura) 64%
-      );
+      object-fit: contain;
     }
     strong {
       display: block;
@@ -86,7 +51,7 @@ class CrgHeader extends LitElement {
       font: 600 0.72rem var(--fuente-etiqueta);
     }
     select {
-      min-height: 44px;
+      min-height: 24px;
       min-width: 4.25rem;
       border: 0;
       background: transparent;
@@ -139,7 +104,13 @@ class CrgHeader extends LitElement {
   render() {
     return html`
       <header>
-        <div class="escudo" aria-hidden="true"><span></span></div>
+        <img
+          class="escudo"
+          src=${`${import.meta.env.BASE_URL}escudo-guindalera.png`}
+          width="44"
+          height="44"
+          alt="Escudo CR Guindalera"
+        />
         <div>
           <strong>CR Guindalera</strong>
           <div class="temporada">

@@ -419,7 +419,7 @@ class CrgHucha extends LitElement {
           >${euros(saldo)}</strong
         >
         <img
-          src=${`${import.meta.env.BASE_URL}nacho-pig.png`}
+          src=${`${import.meta.env.BASE_URL}nacho-pig-1.png`}
           width="80"
           height="80"
           alt=""
