@@ -2,21 +2,37 @@ import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import type { ResumenTemporada, Temporada } from "../data/temporadas-demo";
 import { crearAccesoStaff } from "../lib/acceso-staff";
 import {
+  declararPago,
+  ejecutarGestionStaff,
   leerDatosPublicos,
   loginStaff,
   registrarMulta,
   type CredencialesStaff,
+  type DeclararPago,
+  type GestionarStaff,
+  type RespuestaRpc,
 } from "../lib/supabase";
 import { resumirHucha } from "../lib/hucha";
 import { euros } from "../lib/presentacion";
 import type { RegistroMulta, ResultadoGuardado } from "../lib/registro-multas";
 import "./crg-acceso";
 import "./crg-catalogo";
+import "./crg-crear-temporada";
 import "./crg-detalle";
 import "./crg-header";
 import "./crg-hucha";
 import "./crg-jugadoras";
 import "./crg-nueva-sancion";
+import "./crg-pagos-pendientes";
+
+const confirmaciones = {
+  marcar_pagada: "Cobro registrado.",
+  anular_multa: "Multa anulada.",
+  verificar_pago: "Pago aceptado.",
+  registrar_gasto: "Gasto registrado.",
+  editar_hucha_inicial: "Importe inicial actualizado.",
+  crear_temporada: "Temporada creada y activada.",
+};
 
 class CrgApp extends LitElement {
   static properties = {
@@ -28,6 +44,7 @@ class CrgApp extends LitElement {
     error: { state: true },
     usuarioStaff: { state: true },
     avisoStaff: { state: true },
+    avisoOperacion: { state: true },
   };
 
   private readonly controlAcceso = crearAccesoStaff(loginStaff);
@@ -48,6 +65,7 @@ class CrgApp extends LitElement {
   declare private error: string;
   declare private usuarioStaff: string;
   declare private avisoStaff: string;
+  declare private avisoOperacion: string;
 
   constructor() {
     super();
@@ -57,6 +75,7 @@ class CrgApp extends LitElement {
     this.error = "";
     this.usuarioStaff = "";
     this.avisoStaff = "";
+    this.avisoOperacion = "";
   }
 
   static styles = css`
@@ -250,7 +269,10 @@ class CrgApp extends LitElement {
   }
 
   private actualizarRuta = () => {
-    if (this.ruta !== window.location.hash) this.intentoAcceso++;
+    if (this.ruta !== window.location.hash) {
+      this.intentoAcceso++;
+      this.avisoOperacion = "";
+    }
     this.ruta = window.location.hash;
   };
 
@@ -307,6 +329,7 @@ class CrgApp extends LitElement {
 
   private cambiarTemporada(evento: CustomEvent<string>) {
     if (!this.temporadas.some(({ id }) => id === evento.detail)) return;
+    this.avisoOperacion = "";
     this.temporadaElegida = evento.detail;
     this.temporada = undefined;
     void this.cargarDatos();
@@ -338,15 +361,32 @@ class CrgApp extends LitElement {
     this.#credenciales = undefined;
     this.usuarioStaff = "";
     this.avisoStaff = "";
+    this.avisoOperacion = "";
+  }
+
+  private async solicitarStaff<T extends object>(
+    ejecutar: (credenciales: CredencialesStaff) => Promise<RespuestaRpc<T>>,
+  ): Promise<RespuestaRpc<T>> {
+    const credenciales = this.#credenciales;
+    if (!credenciales)
+      return { ok: false, error: "Inicia sesión para continuar." };
+    const resultado = await ejecutar(credenciales);
+    if (
+      !resultado.ok &&
+      resultado.error === "No autorizado" &&
+      this.#credenciales === credenciales
+    ) {
+      this.cerrarSesion();
+      this.avisoStaff =
+        "No se pudo autorizar la operación. Vuelve a iniciar sesión.";
+    }
+    return resultado;
   }
 
   private guardarMulta = async (
     multa: RegistroMulta,
     temporadaId: string,
   ): Promise<ResultadoGuardado> => {
-    const credenciales = this.#credenciales;
-    if (!credenciales)
-      return { ok: false, error: "Inicia sesión para registrar una multa." };
     if (!this.temporada?.activa || this.temporada.id !== temporadaId) {
       return {
         ok: false,
@@ -354,24 +394,50 @@ class CrgApp extends LitElement {
       };
     }
 
-    const resultado = await registrarMulta(credenciales, multa);
-    if (!resultado.ok) {
-      if (
-        resultado.error === "No autorizado" &&
-        this.#credenciales === credenciales
-      ) {
-        this.cerrarSesion();
-        this.avisoStaff =
-          "No se pudo autorizar el registro. Vuelve a iniciar sesión.";
-      }
-      return resultado;
-    }
+    const resultado = await this.solicitarStaff((credenciales) =>
+      registrarMulta(credenciales, multa),
+    );
+    if (!resultado.ok) return resultado;
 
     const temporada = await this.cargarDatos();
     return {
       ok: true,
       temporada: temporada?.id === temporadaId ? temporada : undefined,
     };
+  };
+
+  private declarar: DeclararPago = async (multaId) => {
+    this.avisoOperacion = "";
+    const resultado = await declararPago(multaId);
+    if (resultado.ok) {
+      const temporada = await this.cargarDatos();
+      const multa = temporada?.multas.find(({ id }) => id === multaId);
+      this.avisoOperacion =
+        multa?.estado === "pago_declarado"
+          ? "Pago declarado. Staff lo revisará."
+          : "Solicitud enviada. Consulta el estado de la multa.";
+    }
+    return resultado;
+  };
+
+  private gestionar: GestionarStaff = async (operacion) => {
+    this.avisoOperacion = "";
+    const resultado = await this.solicitarStaff((credenciales) =>
+      ejecutarGestionStaff(credenciales, operacion),
+    );
+    if (!resultado.ok) return resultado;
+
+    if (operacion.funcion === "crear_temporada")
+      this.temporadaElegida = resultado.id;
+    const temporada = await this.cargarDatos();
+    const mensaje =
+      operacion.funcion === "verificar_pago" && !operacion.aceptar
+        ? "Declaración rechazada. La multa vuelve a estar pendiente."
+        : confirmaciones[operacion.funcion];
+    this.avisoOperacion = temporada
+      ? mensaje
+      : `${mensaje} Actualiza la pantalla para ver el cambio.`;
+    return resultado;
   };
 
   private tarjetaHucha(temporada: Temporada) {
@@ -410,8 +476,18 @@ class CrgApp extends LitElement {
     const esCatalogo = this.ruta === "#catalogo";
     const esHucha = this.ruta === "#hucha";
     const esNuevaSancion = this.ruta === "#nueva-sancion";
-    const esStaff = this.ruta === "#staff" || esNuevaSancion;
+    const esPagosPendientes = this.ruta === "#pagos-pendientes";
+    const esCrearTemporada = this.ruta === "#crear-temporada";
+    const esStaff =
+      this.ruta === "#staff" ||
+      esNuevaSancion ||
+      esPagosPendientes ||
+      esCrearTemporada;
     const esPlantilla = !esCatalogo && !esHucha && !esStaff && !jugadora;
+    const gestor = this.usuarioStaff ? this.gestionar : undefined;
+    const pagosPendientes =
+      temporada?.multas.filter(({ estado }) => estado === "pago_declarado")
+        .length ?? 0;
 
     return html`
       <crg-header
@@ -419,6 +495,7 @@ class CrgApp extends LitElement {
         .seleccionada=${this.temporadaElegida ?? temporada?.id ?? ""}
         .usuarioStaff=${this.usuarioStaff}
         .enStaff=${esStaff}
+        .pagosPendientes=${pagosPendientes}
         @temporada-cambiada=${this.cambiarTemporada}
       ></crg-header>
       <main class="contenido">
@@ -432,9 +509,17 @@ class CrgApp extends LitElement {
         ${!temporada && this.cargando && !esCatalogo
           ? html`<p class="estado-carga" role="status">Cargando temporada…</p>`
           : nothing}
+        ${this.avisoOperacion
+          ? html`<p class="estado-carga" role="status">
+              ${this.avisoOperacion}
+            </p>`
+          : nothing}
         ${esCatalogo ? html`<crg-catalogo></crg-catalogo>` : nothing}
-        ${esStaff && this.avisoStaff
-          ? html`<p class="estado-carga" role="status">${this.avisoStaff}</p>`
+        ${this.avisoStaff
+          ? html`<p class="estado-carga" role="status">
+              ${this.avisoStaff}
+              ${!esStaff ? html`<a href="#staff">Abrir Staff</a>` : nothing}
+            </p>`
           : nothing}
         ${temporada
           ? html`
@@ -450,6 +535,8 @@ class CrgApp extends LitElement {
                     <crg-detalle
                       .jugadora=${jugadora}
                       .hoy=${this.hoy}
+                      .declarar=${this.declarar}
+                      .gestionar=${gestor}
                       .multas=${temporada.multas.filter(
                         ({ jugadora_id }) => jugadora_id === jugadora.id,
                       )}
@@ -457,15 +544,19 @@ class CrgApp extends LitElement {
                   `
                 : nothing}
               ${esHucha
-                ? html`<crg-hucha .temporada=${temporada}></crg-hucha>`
+                ? html`<crg-hucha
+                    .temporada=${temporada}
+                    .gestionar=${gestor}
+                  ></crg-hucha>`
                 : nothing}
-              ${esStaff && (!esNuevaSancion || !this.usuarioStaff)
+              ${esStaff && (this.ruta === "#staff" || !gestor)
                 ? html`
                     <crg-acceso
                       .acceso=${this.acceso}
                       .temporada=${this.temporadas.find(({ activa }) => activa)
                         ?.nombre ?? temporada.nombre}
                       .sesion=${this.usuarioStaff}
+                      .pagosPendientes=${pagosPendientes}
                       @cerrar-acceso-staff=${this.cerrarSesion}
                     ></crg-acceso>
                   `
@@ -480,6 +571,31 @@ class CrgApp extends LitElement {
                     `
                   : html`<p class="estado-carga">
                       El registro de multas se hace en la temporada activa.
+                      <button
+                        type="button"
+                        @click=${this.mostrarTemporadaActiva}
+                      >
+                        Cambiar a la temporada activa
+                      </button>
+                    </p>`
+                : nothing}
+              ${esPagosPendientes && gestor
+                ? html`<crg-pagos-pendientes
+                    .temporada=${temporada}
+                    .gestionar=${gestor}
+                  ></crg-pagos-pendientes>`
+                : nothing}
+              ${esCrearTemporada && gestor
+                ? temporada.activa
+                  ? html`
+                      <crg-crear-temporada
+                        .temporada=${temporada}
+                        .gestionar=${gestor}
+                      ></crg-crear-temporada>
+                    `
+                  : html`<p class="estado-carga">
+                      El importe propuesto procede de la hucha de la temporada
+                      activa.
                       <button
                         type="button"
                         @click=${this.mostrarTemporadaActiva}

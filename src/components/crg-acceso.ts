@@ -11,6 +11,7 @@ class CrgAcceso extends LitElement {
     error: { state: true },
     segundos: { state: true },
     enviando: { state: true },
+    pagosPendientes: { type: Number },
   };
 
   declare acceso: AccesoStaff;
@@ -21,6 +22,7 @@ class CrgAcceso extends LitElement {
   declare private error: string;
   declare private segundos: number;
   declare private enviando: boolean;
+  declare pagosPendientes: number;
   private intervalo?: number;
 
   constructor() {
@@ -203,6 +205,17 @@ class CrgAcceso extends LitElement {
       color: white;
       text-decoration: none;
     }
+    .enlace {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding-inline: 0.75rem;
+      border-radius: 0.65rem;
+      background: var(--color-suave);
+      color: inherit;
+      font-weight: 700;
+      text-decoration: none;
+    }
     :focus-visible {
       outline: 2px solid var(--color-rojo);
       outline-offset: 2px;
@@ -281,6 +294,11 @@ class CrgAcceso extends LitElement {
               <p>Sesión iniciada como <strong>${this.sesion}</strong>.</p>
               <div class="acciones">
                 <a class="nueva" href="#nueva-sancion">Nueva sanción</a>
+                <a class="enlace" href="#pagos-pendientes"
+                  >Pendientes de verificar (${this.pagosPendientes})</a
+                >
+                <a class="enlace" href="#hucha">Gestionar hucha</a>
+                <a class="enlace" href="#crear-temporada">Crear temporada</a>
                 <button
                   type="button"
                   @click=${() =>

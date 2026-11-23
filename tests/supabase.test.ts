@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { leerDatosPublicos } from "../src/lib/supabase";
+import {
+  declararPago,
+  ejecutarGestionStaff,
+  leerDatosPublicos,
+  loginStaff,
+  registrarMulta,
+  type GestionStaff,
+} from "../src/lib/supabase";
 
 const temporadas = [
   { id: "anterior", nombre: "2025/26", activa: false, hucha_inicial: 60 },
@@ -83,4 +90,105 @@ test("un error de lectura se devuelve a la interfaz", async () => {
   await expect(leerDatosPublicos()).rejects.toThrow(
     "temporadas: HTTP 403 42501",
   );
+});
+
+test("envía el acceso y el alta de multa mediante POST a sus RPC", async () => {
+  const fetchPrueba = vi.fn(async (url: URL, _opciones: RequestInit) =>
+    Response.json(
+      url.pathname.endsWith("login_staff")
+        ? { ok: true, usuario: "pruebas" }
+        : { ok: true, id: "multa" },
+    ),
+  );
+  vi.stubGlobal("fetch", fetchPrueba);
+
+  const credenciales = { usuario: "pruebas", pin: "0000" };
+  expect(await loginStaff(credenciales)).toEqual({
+    ok: true,
+    usuario: "pruebas",
+  });
+  const multa = {
+    jugadora_id: "jugadora",
+    concepto_id: "ent_tarde",
+    importe: 4,
+    multiplicador: 2 as const,
+    cantidad: 1,
+    fecha: "2026-11-22",
+    observacion: null,
+    pagada_ahora: false,
+  };
+  expect(await registrarMulta(credenciales, multa)).toEqual({
+    ok: true,
+    id: "multa",
+  });
+
+  for (const [indice, ruta, datos] of [
+    [0, "/rest/v1/rpc/login_staff", credenciales],
+    [1, "/rest/v1/rpc/registrar_multa", { ...credenciales, ...multa }],
+  ] as const) {
+    const [url, opciones] = fetchPrueba.mock.calls[indice];
+    expect(url.pathname).toBe(ruta);
+    expect(url.search).toBe("");
+    expect(opciones).toMatchObject({
+      method: "POST",
+      headers: { apikey: "sb_publishable_prueba" },
+    });
+    expect(JSON.parse(String(opciones.body))).toEqual(datos);
+  }
+});
+
+test("declara públicamente y envía cada operación de gestión con su firma de Supabase", async () => {
+  const fetchPrueba = vi.fn(async (_url: URL, _opciones: RequestInit) =>
+    Response.json({ ok: true }),
+  );
+  vi.stubGlobal("fetch", fetchPrueba);
+  const staff = { usuario: "prueba", pin: "0000" };
+  const fecha = "2026-11-22";
+  const operaciones: GestionStaff[] = [
+    { funcion: "marcar_pagada", multa_id: "m1", fecha_pago: fecha },
+    { funcion: "anular_multa", multa_id: "m1", motivo: "Duplicada" },
+    {
+      funcion: "verificar_pago",
+      multa_id: "m1",
+      aceptar: true,
+      fecha_pago: fecha,
+    },
+    {
+      funcion: "verificar_pago",
+      multa_id: "m1",
+      aceptar: false,
+      fecha_pago: null,
+    },
+    {
+      funcion: "registrar_gasto",
+      temporada_id: "t1",
+      importe: 2.5,
+      motivo: "Agua",
+      fecha,
+    },
+    {
+      funcion: "editar_hucha_inicial",
+      temporada_id: "t1",
+      importe: 100,
+      motivo: "Corrección",
+      fecha,
+    },
+    { funcion: "crear_temporada", nombre: "2027/28", hucha_inicial: null },
+  ];
+
+  expect(await declararPago("m1")).toEqual({ ok: true });
+  for (const operacion of operaciones) {
+    expect(await ejecutarGestionStaff(staff, operacion)).toEqual({ ok: true });
+  }
+  const llamadas = fetchPrueba.mock.calls.map(([url, opciones]) => ({
+    ruta: url.pathname,
+    cuerpo: JSON.parse(String(opciones.body)),
+  }));
+  expect(llamadas).toEqual([
+    { ruta: "/rest/v1/rpc/declarar_pago", cuerpo: { multa_id: "m1" } },
+    ...operaciones.map(({ funcion, ...datos }) => ({
+      ruta: `/rest/v1/rpc/${funcion}`,
+      cuerpo: { ...staff, ...datos },
+    })),
+  ]);
 });

@@ -2,6 +2,13 @@ import type { Temporada } from "../data/temporadas-demo";
 import { importeAbonado, nombreConcepto } from "./presentacion";
 import { saldoHucha } from "./reglas";
 
+export function leerImporteHucha(texto: string): number | undefined {
+  const normalizado = texto.trim().replace(",", ".");
+  if (!/^-?\d+(\.\d+)?$/.test(normalizado)) return;
+  const importe = Number(normalizado);
+  return Math.abs(importe) <= 999_999.99 ? importe : undefined;
+}
+
 type Movimiento = {
   tipo: "ingreso" | "gasto";
   concepto: string;

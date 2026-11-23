@@ -5,13 +5,15 @@ class CrgHeader extends LitElement {
   static properties = {
     temporadas: { attribute: false },
     seleccionada: { type: String },
-    usuarioDemo: { type: String },
+    usuarioStaff: { type: String },
     enStaff: { type: Boolean },
+    pagosPendientes: { type: Number },
   };
   declare temporadas: readonly ResumenTemporada[];
   declare seleccionada: string;
-  declare usuarioDemo: string;
+  declare usuarioStaff: string;
   declare enStaff: boolean;
+  declare pagosPendientes: number;
 
   static styles = css`
     :host {
@@ -109,6 +111,18 @@ class CrgHeader extends LitElement {
       color: var(--color-rojo);
       border-color: var(--color-rojo);
     }
+    .insignia {
+      margin-left: 0.35rem;
+      min-width: 1.15rem;
+      height: 1.15rem;
+      display: inline-grid;
+      place-items: center;
+      padding-inline: 0.16rem;
+      border-radius: 999px;
+      background: var(--color-rojo);
+      color: white;
+      font: 700 0.69rem var(--fuente-etiqueta);
+    }
     :focus-visible {
       outline: 2px solid var(--color-rojo);
       outline-offset: 2px;
@@ -155,8 +169,15 @@ class CrgHeader extends LitElement {
           class="staff"
           href="#staff"
           aria-current=${this.enStaff ? "page" : nothing}
-          >${this.usuarioDemo || "Staff"}</a
-        >
+          >${this.usuarioStaff || "Staff"}
+          ${this.pagosPendientes
+            ? html`<span
+                class="insignia"
+                aria-label=${`${this.pagosPendientes} pagos por verificar`}
+                >${this.pagosPendientes}</span
+              >`
+            : nothing}
+        </a>
       </header>
     `;
   }

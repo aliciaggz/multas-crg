@@ -1,4 +1,5 @@
 import type {
+  AjusteHucha,
   Jugadora,
   Multa,
   ResumenTemporada,
@@ -8,6 +9,7 @@ import type { RegistroMulta } from "./registro-multas";
 
 type FilaTemporada = Omit<ResumenTemporada, "huchaInicial"> & {
   hucha_inicial: number;
+  historial_hucha_inicial: AjusteHucha[];
 };
 type FilaJugadora = Jugadora & { activa: boolean };
 type FilaMulta = Omit<Multa, "declarada_en" | "fecha_pago"> & {
@@ -21,6 +23,34 @@ export type CredencialesStaff = { usuario: string; pin: string };
 export type RespuestaRpc<T extends object> =
   | ({ ok: true } & T)
   | { ok: false; error: string };
+
+export type GestionStaff =
+  | { funcion: "marcar_pagada"; multa_id: string; fecha_pago: string }
+  | { funcion: "anular_multa"; multa_id: string; motivo: string }
+  | {
+      funcion: "verificar_pago";
+      multa_id: string;
+      aceptar: boolean;
+      fecha_pago: string | null;
+    }
+  | {
+      funcion: "registrar_gasto" | "editar_hucha_inicial";
+      temporada_id: string;
+      importe: number;
+      motivo: string;
+      fecha: string;
+    }
+  | {
+      funcion: "crear_temporada";
+      nombre: string;
+      hucha_inicial: number | null;
+    };
+
+export type ResultadoGestion = RespuestaRpc<{ id?: string }>;
+export type GestionarStaff = (
+  operacion: GestionStaff,
+) => Promise<ResultadoGestion>;
+export type DeclararPago = (multaId: string) => Promise<ResultadoGestion>;
 
 function configuracionSupabase() {
   const urlProyecto = import.meta.env.VITE_SUPABASE_URL?.trim();
@@ -74,12 +104,13 @@ export async function leer<T>(
 export async function leerDatosPublicos(idElegida?: string) {
   const filas = await leer<FilaTemporada>(
     "temporadas",
-    "id,nombre,activa,hucha_inicial",
+    "id,nombre,activa,hucha_inicial,historial_hucha_inicial",
   );
-  const temporadas: ResumenTemporada[] = filas.map(
-    ({ hucha_inicial, ...fila }) => ({
+  const temporadas = filas.map(
+    ({ hucha_inicial, historial_hucha_inicial, ...fila }) => ({
       ...fila,
       huchaInicial: hucha_inicial,
+      historialHuchaInicial: historial_hucha_inicial ?? [],
     }),
   );
   temporadas.sort(
@@ -130,8 +161,14 @@ export async function leerDatosPublicos(idElegida?: string) {
   return { temporadas, temporada };
 }
 
+type FuncionRpc =
+  | "login_staff"
+  | "registrar_multa"
+  | "declarar_pago"
+  | GestionStaff["funcion"];
+
 async function llamarRpc<T extends object>(
-  funcion: "login_staff" | "registrar_multa",
+  funcion: FuncionRpc,
   parametros: object,
 ): Promise<RespuestaRpc<T>> {
   const { urlProyecto, clave } = configuracionSupabase();
@@ -160,5 +197,19 @@ export function registrarMulta(
   return llamarRpc<{ id: string }>("registrar_multa", {
     ...credenciales,
     ...multa,
+  });
+}
+
+export const declararPago: DeclararPago = (multaId) =>
+  llamarRpc<{ id?: string }>("declarar_pago", { multa_id: multaId });
+
+export function ejecutarGestionStaff(
+  credenciales: CredencialesStaff,
+  operacion: GestionStaff,
+): Promise<ResultadoGestion> {
+  const { funcion, ...parametros } = operacion;
+  return llamarRpc<{ id?: string }>(funcion, {
+    ...credenciales,
+    ...parametros,
   });
 }

@@ -10,15 +10,25 @@ export type Jugadora = {
 };
 
 export type Multa = {
+  id?: string;
   jugadora_id: string;
   concepto_id: string;
   importe: number;
-  importe_cobrado?: number;
+  importe_cobrado?: number | null;
   multiplicador?: number;
   fecha: string;
   estado: "pendiente" | "pago_declarado" | "pagada" | "anulada";
   declarada_en?: string;
   fecha_pago?: string;
+};
+
+export type AjusteHucha = {
+  anterior: number;
+  nuevo: number;
+  motivo: string;
+  fecha: string;
+  usuario: string;
+  registrado_en: string;
 };
 
 export type Temporada = {
@@ -29,9 +39,10 @@ export type Temporada = {
   jugadoras: readonly Jugadora[];
   multas: readonly Multa[];
   gastos: readonly { motivo: string; fecha: string; importe: number }[];
+  historialHuchaInicial?: readonly AjusteHucha[];
 };
 
-export type ResumenTemporada = Omit<
+export type ResumenTemporada = Pick<
   Temporada,
   "id" | "nombre" | "activa" | "huchaInicial"
 >;
