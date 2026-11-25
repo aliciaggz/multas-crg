@@ -1,16 +1,16 @@
-import { css, html, LitElement, nothing } from "lit";
-import type { Temporada } from "../data/temporadas-demo";
-import { leerImporteHucha, resumirHucha } from "../lib/hucha";
-import { euros, fechaCorta } from "../lib/presentacion";
-import { fechaEnMadrid } from "../lib/reglas";
-import type { GestionarStaff } from "../lib/supabase";
+import { css, html, LitElement, nothing } from 'lit';
+import type { Temporada } from '../data/temporadas-demo';
+import { leerImporteHucha, resumirHucha } from '../lib/hucha';
+import { euros, fechaCorta } from '../lib/presentacion';
+import { fechaEnMadrid } from '../lib/reglas';
+import type { GestionarStaff } from '../lib/supabase';
 
 const filtros = [
-  { id: "todos", nombre: "Todos" },
-  { id: "ingreso", nombre: "Ingresos" },
-  { id: "gasto", nombre: "Gastos" },
+  { id: 'todos', nombre: 'Todos' },
+  { id: 'ingreso', nombre: 'Ingresos' },
+  { id: 'gasto', nombre: 'Gastos' },
 ] as const;
-type Filtro = (typeof filtros)[number]["id"];
+type Filtro = (typeof filtros)[number]['id'];
 
 class CrgHucha extends LitElement {
   static properties = {
@@ -27,7 +27,7 @@ class CrgHucha extends LitElement {
   declare temporada: Temporada;
   declare gestionar?: GestionarStaff;
   declare private filtro: Filtro;
-  declare private edicion?: "gasto" | "inicial";
+  declare private edicion?: 'gasto' | 'inicial';
   declare private importe: string;
   declare private motivo: string;
   declare private fecha: string;
@@ -36,12 +36,12 @@ class CrgHucha extends LitElement {
 
   constructor() {
     super();
-    this.filtro = "todos";
-    this.importe = "";
-    this.motivo = "";
-    this.fecha = "";
+    this.filtro = 'todos';
+    this.importe = '';
+    this.motivo = '';
+    this.fecha = '';
     this.guardando = false;
-    this.error = "";
+    this.error = '';
   }
 
   static styles = css`
@@ -62,11 +62,7 @@ class CrgHucha extends LitElement {
       padding: 1.1rem;
       border-radius: 1.4rem;
       color: white;
-      background: linear-gradient(
-        125deg,
-        var(--color-tarjeta-oscura) 45%,
-        #2e2339
-      );
+      background: linear-gradient(125deg, var(--color-tarjeta-oscura) 45%, #2e2339);
       box-shadow: 0 10px 25px rgb(15 23 42 / 11%);
     }
     .bote h1 {
@@ -91,8 +87,7 @@ class CrgHucha extends LitElement {
       right: 0.86rem;
       width: 5rem;
       height: 5rem;
-      border-radius: 0.85rem;
-      object-fit: cover;
+      object-fit: contain;
     }
     .balance {
       display: grid;
@@ -142,7 +137,7 @@ class CrgHucha extends LitElement {
       font: 700 0.79rem var(--fuente-texto);
       cursor: pointer;
     }
-    button[aria-pressed="true"] {
+    button[aria-pressed='true'] {
       color: white;
       background: var(--color-tarjeta-oscura);
       border-color: transparent;
@@ -265,8 +260,7 @@ class CrgHucha extends LitElement {
       justify-content: space-between;
     }
     :focus-visible {
-      outline: 2px solid var(--color-rojo);
-      outline-offset: 2px;
+      outline: none;
     }
     @media (min-width: 34rem) {
       .bote img {
@@ -277,15 +271,12 @@ class CrgHucha extends LitElement {
     }
   `;
 
-  private abrir(edicion: "gasto" | "inicial") {
+  private abrir(edicion: 'gasto' | 'inicial') {
     this.edicion = edicion;
-    this.importe =
-      edicion === "inicial"
-        ? String(this.temporada.huchaInicial).replace(".", ",")
-        : "";
-    this.motivo = "";
+    this.importe = edicion === 'inicial' ? String(this.temporada.huchaInicial).replace('.', ',') : '';
+    this.motivo = '';
     this.fecha = fechaEnMadrid(new Date());
-    this.error = "";
+    this.error = '';
   }
 
   private async guardar(evento: SubmitEvent) {
@@ -293,25 +284,19 @@ class CrgHucha extends LitElement {
     if (!this.gestionar || !this.edicion || this.guardando) return;
     const importe = leerImporteHucha(this.importe);
     const motivo = this.motivo.trim();
-    if (
-      importe === undefined ||
-      (this.edicion === "gasto" && importe <= 0) ||
-      !motivo ||
-      !this.fecha
-    ) {
+    if (importe === undefined || (this.edicion === 'gasto' && importe <= 0) || !motivo || !this.fecha) {
       this.error =
-        this.edicion === "gasto"
-          ? "Indica un importe positivo, el motivo y la fecha."
-          : "Indica el importe, el motivo y la fecha.";
+        this.edicion === 'gasto'
+          ? 'Indica un importe positivo, el motivo y la fecha.'
+          : 'Indica el importe, el motivo y la fecha.';
       return;
     }
 
     this.guardando = true;
-    this.error = "";
+    this.error = '';
     try {
       const respuesta = await this.gestionar({
-        funcion:
-          this.edicion === "gasto" ? "registrar_gasto" : "editar_hucha_inicial",
+        funcion: this.edicion === 'gasto' ? 'registrar_gasto' : 'editar_hucha_inicial',
         temporada_id: this.temporada.id,
         importe,
         motivo,
@@ -320,8 +305,7 @@ class CrgHucha extends LitElement {
       if (respuesta.ok) this.edicion = undefined;
       else this.error = respuesta.error;
     } catch {
-      this.error =
-        "No se pudo confirmar el cambio. Revisa la hucha antes de volver a guardar.";
+      this.error = 'No se pudo confirmar el cambio. Revisa la hucha antes de volver a guardar.';
     } finally {
       this.guardando = false;
     }
@@ -331,25 +315,13 @@ class CrgHucha extends LitElement {
     if (!this.gestionar) return nothing;
     if (!this.edicion)
       return html`<div class="gestion acciones">
-        <button type="button" @click=${() => this.abrir("gasto")}>
-          + Registrar gasto
-        </button>
-        <button type="button" @click=${() => this.abrir("inicial")}>
-          Editar importe inicial
-        </button>
+        <button type="button" @click=${() => this.abrir('gasto')}>+ Registrar gasto</button>
+        <button type="button" @click=${() => this.abrir('inicial')}>Editar importe inicial</button>
       </div>`;
 
     return html`<div class="gestion">
-      <form
-        novalidate
-        @submit=${this.guardar}
-        aria-busy=${this.guardando ? "true" : "false"}
-      >
-        <h2>
-          ${this.edicion === "gasto"
-            ? "Registrar gasto"
-            : "Editar importe inicial"}
-        </h2>
+      <form novalidate @submit=${this.guardar} aria-busy=${this.guardando ? 'true' : 'false'}>
+        <h2>${this.edicion === 'gasto' ? 'Registrar gasto' : 'Editar importe inicial'}</h2>
         <label
           >Importe en euros<input
             name="importe"
@@ -380,12 +352,10 @@ class CrgHucha extends LitElement {
               this.fecha = (evento.currentTarget as HTMLInputElement).value;
             }}
         /></label>
-        ${this.error
-          ? html`<p role="alert" class="error">${this.error}</p>`
-          : nothing}
+        ${this.error ? html`<p role="alert" class="error">${this.error}</p>` : nothing}
         <div class="acciones">
           <button type="submit" class="primario" ?disabled=${this.guardando}>
-            ${this.guardando ? "Guardando…" : "Guardar"}
+            ${this.guardando ? 'Guardando…' : 'Guardar'}
           </button>
           <button
             type="button"
@@ -402,28 +372,16 @@ class CrgHucha extends LitElement {
   }
 
   render() {
-    const { saldo, ingresado, gastado, movimientos } = resumirHucha(
-      this.temporada,
-    );
-    const visibles =
-      this.filtro === "todos"
-        ? movimientos
-        : movimientos.filter(({ tipo }) => tipo === this.filtro);
+    const { saldo, ingresado, gastado, movimientos } = resumirHucha(this.temporada);
+    const visibles = this.filtro === 'todos' ? movimientos : movimientos.filter(({ tipo }) => tipo === this.filtro);
     const ajustes = [...(this.temporada.historialHuchaInicial ?? [])].reverse();
 
     return html`
       <section class="bote">
         <h1>La hucha de Nacho</h1>
         <p class="temporada">Temporada ${this.temporada.nombre}</p>
-        <strong class="total" aria-label="Saldo ${euros(saldo)}"
-          >${euros(saldo)}</strong
-        >
-        <img
-          src=${`${import.meta.env.BASE_URL}nacho-pig-1.png`}
-          width="80"
-          height="80"
-          alt=""
-        />
+        <strong class="total" aria-label="Saldo ${euros(saldo)}">${euros(saldo)}</strong>
+        <img src=${`${import.meta.env.BASE_URL}nacho-pig-1.png`} width="80" height="80" alt="" />
         <dl class="balance">
           <div>
             <dt>Ingresado</dt>
@@ -443,7 +401,7 @@ class CrgHucha extends LitElement {
             ({ id, nombre }) =>
               html`<button
                 type="button"
-                aria-pressed=${this.filtro === id ? "true" : "false"}
+                aria-pressed=${this.filtro === id ? 'true' : 'false'}
                 @click=${() => {
                   this.filtro = id;
                 }}
@@ -452,63 +410,55 @@ class CrgHucha extends LitElement {
               </button>`,
           )}
         </div>
-        ${visibles.length
-          ? html`<ul>
-              ${visibles.map(
-                (movimiento) => html`
-                  <li class=${movimiento.tipo}>
-                    <span class="icono" aria-hidden="true"
-                      >${movimiento.tipo === "ingreso" ? "↓" : "↑"}</span
-                    >
-                    <div>
-                      <h3>${movimiento.concepto}</h3>
-                      <p class="apunte">
-                        ${movimiento.tipo === "gasto"
-                          ? "Gasto · "
-                          : html`Ingreso · `}${movimiento.dorsal !== undefined
-                          ? `#${movimiento.dorsal} · `
-                          : nothing}<time datetime=${movimiento.fecha}
-                          >${fechaCorta(movimiento.fecha)}</time
-                        >
-                      </p>
-                    </div>
-                    <strong class="importe"
-                      >${movimiento.tipo === "ingreso" ? "+" : "−"}${euros(
-                        movimiento.importe,
-                      )}</strong
-                    >
-                  </li>
-                `,
-              )}
-            </ul>`
-          : html`<p class="vacio">No hay movimientos para este filtro.</p>`}
+        ${
+          visibles.length
+            ? html`<ul>
+                ${visibles.map(
+                  (movimiento) => html`
+                    <li class=${movimiento.tipo}>
+                      <span class="icono" aria-hidden="true">${movimiento.tipo === 'ingreso' ? '↓' : '↑'}</span>
+                      <div>
+                        <h3>${movimiento.concepto}</h3>
+                        <p class="apunte">
+                          ${movimiento.tipo === 'gasto' ? 'Gasto · ' : html`Ingreso · `}${movimiento.nombreTecnico ? `${movimiento.nombreTecnico} · ` : movimiento.dorsal !== undefined ? `#${movimiento.dorsal} · ` : nothing}<time
+                            datetime=${movimiento.fecha}
+                            >${fechaCorta(movimiento.fecha)}</time
+                          >
+                        </p>
+                      </div>
+                      <strong class="importe"
+                        >${movimiento.tipo === 'ingreso' ? '+' : '−'}${euros(movimiento.importe)}</strong
+                      >
+                    </li>
+                  `,
+                )}
+              </ul>`
+            : html`<p class="vacio">No hay movimientos para este filtro.</p>`
+        }
       </section>
-      ${ajustes.length
-        ? html`<details class="historial">
-            <summary>Ajustes del importe inicial (${ajustes.length})</summary>
-            <ul>
-              ${ajustes.map(
-                (ajuste) =>
-                  html`<li>
-                    <div>
-                      <h3>${ajuste.motivo}</h3>
-                      <p class="apunte">
-                        ${fechaCorta(ajuste.fecha)}${this.gestionar
-                          ? ` · ${ajuste.usuario}`
-                          : ""}
-                      </p>
-                    </div>
-                    <strong class="importe"
-                      >${euros(ajuste.anterior)} →
-                      ${euros(ajuste.nuevo)}</strong
-                    >
-                  </li>`,
-              )}
-            </ul>
-          </details>`
-        : nothing}
+      ${
+        ajustes.length
+          ? html`<details class="historial">
+              <summary>Ajustes del importe inicial (${ajustes.length})</summary>
+              <ul>
+                ${ajustes.map(
+                  (ajuste) =>
+                    html`<li>
+                      <div>
+                        <h3>${ajuste.motivo}</h3>
+                        <p class="apunte">
+                          ${fechaCorta(ajuste.fecha)}${this.gestionar && ajuste.usuario ? ` · ${ajuste.usuario}` : ''}
+                        </p>
+                      </div>
+                      <strong class="importe">${euros(ajuste.anterior)} → ${euros(ajuste.nuevo)}</strong>
+                    </li>`,
+                )}
+              </ul>
+            </details>`
+          : nothing
+      }
     `;
   }
 }
 
-customElements.define("crg-hucha", CrgHucha);
+customElements.define('crg-hucha', CrgHucha);

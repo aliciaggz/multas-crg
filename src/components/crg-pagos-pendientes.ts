@@ -1,16 +1,14 @@
-import { css, html, LitElement, nothing } from "lit";
-import { repeat } from "lit/directives/repeat.js";
-import type { Temporada } from "../data/temporadas-demo";
-import { euros, fechaCorta, nombreConcepto } from "../lib/presentacion";
-import { fechaEnMadrid, importeActual } from "../lib/reglas";
-import type { GestionarStaff } from "../lib/supabase";
-import "./crg-acciones-multa";
+import { css, html, LitElement, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
+import { destinatarioDe, enlaceFicha, etiquetaDestinatario } from '../lib/destinatarios';
+import type { Temporada } from '../data/temporadas-demo';
+import { euros, fechaCorta, importeVisible, nombreConcepto } from '../lib/presentacion';
+import { fechaEnMadrid } from '../lib/reglas';
+import type { GestionarStaff } from '../lib/supabase';
+import './crg-acciones-multa';
 
 class CrgPagosPendientes extends LitElement {
-  static properties = {
-    temporada: { attribute: false },
-    gestionar: { attribute: false },
-  };
+  static properties = { temporada: { attribute: false }, gestionar: { attribute: false } };
   declare temporada: Temporada;
   declare gestionar: GestionarStaff;
 
@@ -80,64 +78,57 @@ class CrgPagosPendientes extends LitElement {
       white-space: nowrap;
     }
     :focus-visible {
-      outline: 2px solid var(--color-rojo);
-      outline-offset: 2px;
+      outline: none;
     }
   `;
 
   render() {
-    const pendientes = this.temporada.multas
-      .filter(({ estado }) => estado === "pago_declarado")
-      .sort((a, b) =>
-        (a.declarada_en ?? "").localeCompare(b.declarada_en ?? ""),
-      );
     const hoy = new Date();
+    const pendientes = this.temporada.multas
+      .filter(({ estado }) => estado === 'pago_declarado')
+      .sort(
+        (a, b) =>
+          importeVisible(a, hoy) - importeVisible(b, hoy) || (a.declarada_en ?? '').localeCompare(b.declarada_en ?? ''),
+      );
     return html`
-      <a href="#staff" class="volver">← Volver a Staff</a>
+      <a href="#inicio" class="volver">← Volver a Inicio</a>
       <h1>Pendientes de verificar</h1>
       <p class="detalle">
-        Temporada ${this.temporada.nombre} · ${pendientes.length}
-        ${pendientes.length === 1 ? "pago" : "pagos"}
+        Temporada ${this.temporada.nombre} · ${pendientes.length} ${pendientes.length === 1 ? 'pago' : 'pagos'}
       </p>
-      ${pendientes.length
-        ? html`<ul>
-            ${repeat(
-              pendientes,
-              (multa) => multa.id,
-              (multa) => {
-                const jugadora = this.temporada.jugadoras.find(
-                  ({ id }) => id === multa.jugadora_id,
-                );
-                return html`<li>
-                  <div class="resumen">
-                    <div>
-                      <h2>
-                        ${jugadora
-                          ? html`<a href=${`#jugadora/${jugadora.id}`}
-                              >#${jugadora.dorsal} ${jugadora.nombre}</a
-                            >`
-                          : "Jugadora"}
-                      </h2>
-                      <p class="detalle">
-                        ${nombreConcepto(multa.concepto_id)}${multa.declarada_en
-                          ? html` · Declarado el
-                            ${fechaCorta(fechaEnMadrid(multa.declarada_en))}`
-                          : nothing}
-                      </p>
+      ${
+        pendientes.length
+          ? html`<ul>
+              ${repeat(
+                pendientes,
+                (multa) => multa.id,
+                (multa) => {
+                  const persona = destinatarioDe(multa, this.temporada);
+                  return html`<li>
+                    <div class="resumen">
+                      <div>
+                        <h2>
+                          ${persona ? html`<a href=${enlaceFicha(persona)}>${etiquetaDestinatario(persona)}</a>` : 'Destinatario'}
+                        </h2>
+                        <p class="detalle">
+                          ${nombreConcepto(multa.concepto_id)}${
+                            multa.declarada_en
+                              ? html` · Declarado el ${fechaCorta(fechaEnMadrid(multa.declarada_en))}`
+                              : nothing
+                          }
+                        </p>
+                      </div>
+                      <strong>${euros(importeVisible(multa, hoy))}</strong>
                     </div>
-                    <strong>${euros(importeActual(multa, hoy))}</strong>
-                  </div>
-                  <crg-acciones-multa
-                    .multa=${multa}
-                    .gestionar=${this.gestionar}
-                  ></crg-acciones-multa>
-                </li>`;
-              },
-            )}
-          </ul>`
-        : html`<p class="vacio">No hay pagos pendientes de verificar.</p>`}
+                    <crg-acciones-multa .multa=${multa} .gestionar=${this.gestionar}></crg-acciones-multa>
+                  </li>`;
+                },
+              )}
+            </ul>`
+          : html`<p class="vacio">No hay pagos pendientes de verificar.</p>`
+      }
     `;
   }
 }
 
-customElements.define("crg-pagos-pendientes", CrgPagosPendientes);
+customElements.define('crg-pagos-pendientes', CrgPagosPendientes);

@@ -1,8 +1,8 @@
-import { css, html, LitElement, nothing } from "lit";
-import type { Temporada } from "../data/temporadas-demo";
-import { leerImporteHucha, resumirHucha } from "../lib/hucha";
-import { euros } from "../lib/presentacion";
-import type { GestionarStaff } from "../lib/supabase";
+import { css, html, LitElement, nothing } from 'lit';
+import type { Temporada } from '../data/temporadas-demo';
+import { leerImporteHucha, resumirHucha } from '../lib/hucha';
+import { euros } from '../lib/presentacion';
+import type { GestionarStaff } from '../lib/supabase';
 
 class CrgCrearTemporada extends LitElement {
   static properties = {
@@ -23,9 +23,9 @@ class CrgCrearTemporada extends LitElement {
 
   constructor() {
     super();
-    this.nombre = "";
+    this.nombre = '';
     this.guardando = false;
-    this.error = "";
+    this.error = '';
   }
 
   static styles = css`
@@ -102,8 +102,7 @@ class CrgCrearTemporada extends LitElement {
       font-size: 0.82rem;
     }
     :focus-visible {
-      outline: 2px solid var(--color-rojo);
-      outline-offset: 2px;
+      outline: none;
     }
   `;
 
@@ -111,29 +110,22 @@ class CrgCrearTemporada extends LitElement {
     evento.preventDefault();
     if (this.guardando) return;
     const nombre = this.nombre.trim();
-    const huchaInicial =
-      this.inicial === undefined ? null : leerImporteHucha(this.inicial);
+    const huchaInicial = this.inicial === undefined ? null : leerImporteHucha(this.inicial);
     if (!nombre || huchaInicial === undefined) {
-      this.error =
-        "Indica el nombre de la temporada y un importe inicial válido.";
+      this.error = 'Indica el nombre de la temporada y un importe inicial válido.';
       return;
     }
 
     this.guardando = true;
-    this.error = "";
+    this.error = '';
     try {
-      const resultado = await this.gestionar({
-        funcion: "crear_temporada",
-        nombre,
-        hucha_inicial: huchaInicial,
-      });
+      const resultado = await this.gestionar({ funcion: 'crear_temporada', nombre, hucha_inicial: huchaInicial });
       if (resultado.ok) {
-        this.nombre = "";
+        this.nombre = '';
         this.inicial = undefined;
       } else this.error = resultado.error;
     } catch {
-      this.error =
-        "No se pudo confirmar la creación. Revisa el selector de temporadas antes de repetirla.";
+      this.error = 'No se pudo confirmar la creación. Revisa el selector de temporadas antes de repetirla.';
     } finally {
       this.guardando = false;
     }
@@ -142,18 +134,10 @@ class CrgCrearTemporada extends LitElement {
   render() {
     const { saldo } = resumirHucha(this.temporada);
     return html`
-      <a class="volver" href="#staff">← Volver a Staff</a>
+      <a class="volver" href="#inicio">← Volver a Inicio</a>
       <h1>Crear temporada</h1>
-      <form
-        class="tarjeta"
-        novalidate
-        @submit=${this.crear}
-        aria-busy=${this.guardando ? "true" : "false"}
-      >
-        <p class="apunte">
-          Saldo actual de ${this.temporada.nombre}:
-          <strong>${euros(saldo)}</strong>
-        </p>
+      <form class="tarjeta" novalidate @submit=${this.crear} aria-busy=${this.guardando ? 'true' : 'false'}>
+        <p class="apunte">Saldo actual de ${this.temporada.nombre}: <strong>${euros(saldo)}</strong></p>
         <label
           >Nombre<input
             name="nombre"
@@ -168,22 +152,20 @@ class CrgCrearTemporada extends LitElement {
           >Importe inicial en euros<input
             name="importe"
             inputmode="decimal"
-            .value=${this.inicial ?? String(saldo).replace(".", ",")}
+            .value=${this.inicial ?? String(saldo).replace('.', ',')}
             ?disabled=${this.guardando}
             @input=${(evento: Event) => {
               this.inicial = (evento.currentTarget as HTMLInputElement).value;
             }}
         /></label>
         <p class="apunte">Al crearla, se activará la nueva temporada.</p>
-        ${this.error
-          ? html`<p class="error" role="alert">${this.error}</p>`
-          : nothing}
+        ${this.error ? html`<p class="error" role="alert">${this.error}</p>` : nothing}
         <button type="submit" ?disabled=${this.guardando}>
-          ${this.guardando ? "Creando…" : "Crear y activar temporada"}
+          ${this.guardando ? 'Creando…' : 'Crear y activar temporada'}
         </button>
       </form>
     `;
   }
 }
 
-customElements.define("crg-crear-temporada", CrgCrearTemporada);
+customElements.define('crg-crear-temporada', CrgCrearTemporada);

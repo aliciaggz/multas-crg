@@ -103,15 +103,17 @@ describe('contarFaltas', () => {
   });
 
   test('cuenta las tres clases de faltas a entrenamientos, incluida la de 0 €', () => {
-    expect(contarFaltas([
-      { concepto_id: 'ent_falta_sin_aviso', estado: 'pendiente' },
-      { concepto_id: 'ent_falta_menos_4h', estado: 'pago_declarado' },
-      { concepto_id: 'ent_falta_con_aviso', estado: 'pagada' },
-      { concepto_id: 'ent_falta_sin_aviso', estado: 'anulada' },
-      { concepto_id: 'ent_tarde', estado: 'pendiente' },
-      { concepto_id: 'par_falta', estado: 'pendiente' },
-      { concepto_id: 'esc_3', estado: 'pagada' },
-    ])).toBe(3);
+    expect(
+      contarFaltas([
+        { concepto_id: 'ent_falta_sin_aviso', estado: 'pendiente' },
+        { concepto_id: 'ent_falta_menos_4h', estado: 'pago_declarado' },
+        { concepto_id: 'ent_falta_con_aviso', estado: 'pagada' },
+        { concepto_id: 'ent_falta_sin_aviso', estado: 'anulada' },
+        { concepto_id: 'ent_tarde', estado: 'pendiente' },
+        { concepto_id: 'par_falta', estado: 'pendiente' },
+        { concepto_id: 'esc_3', estado: 'pagada' },
+      ]),
+    ).toBe(3);
   });
 });
 
@@ -133,21 +135,15 @@ describe('escalonesPendientes', () => {
   const registradoSeis = { concepto_id: 'esc_6', importeBase: 2, estado: 'pagada' } as const;
 
   test('a las 6 faltas propone solo 2 € si ya hay 4 € registrados', () => {
-    expect(escalonesPendientes(6, [registradoTres])).toEqual([
-      { concepto_id: 'esc_6', importe: 2 },
-    ]);
+    expect(escalonesPendientes(6, [registradoTres])).toEqual([{ concepto_id: 'esc_6', importe: 2 }]);
   });
 
   test('a las 9 faltas propone solo 2 € si ya hay 6 € registrados', () => {
-    expect(escalonesPendientes(9, [registradoTres, registradoSeis])).toEqual([
-      { concepto_id: 'esc_9', importe: 2 },
-    ]);
+    expect(escalonesPendientes(9, [registradoTres, registradoSeis])).toEqual([{ concepto_id: 'esc_9', importe: 2 }]);
   });
 
   test('a las 9 faltas resta 4 € si se omitió el escalón de 6', () => {
-    expect(escalonesPendientes(9, [registradoTres])).toEqual([
-      { concepto_id: 'esc_9', importe: 4 },
-    ]);
+    expect(escalonesPendientes(9, [registradoTres])).toEqual([{ concepto_id: 'esc_9', importe: 4 }]);
   });
 
   test('descuenta solo escalones vigentes y no repite el importe ya registrado', () => {
@@ -161,14 +157,19 @@ describe('escalonesPendientes', () => {
 describe('saldoJugadora', () => {
   test('suma pendientes y pagos por verificar, con su importe actual', () => {
     const hoy = '2026-04-03';
-    expect(saldoJugadora([
-      { ...multaPendiente, importe: 3, fecha: '2026-04-01' },
-      { ...multaPendiente, importe: 4 },
-      { ...multaPendiente, importe: 5, estado: 'pago_declarado', declarada_en: '2026-03-28T12:00:00Z' },
-      { ...multaPendiente, importe: 6, estado: 'pago_declarado', declarada_en: '2026-03-30T12:00:00Z' },
-      { ...multaPendiente, importe: 7, estado: 'pagada' },
-      { ...multaPendiente, importe: 8, estado: 'anulada' },
-    ], hoy)).toBe(28);
+    expect(
+      saldoJugadora(
+        [
+          { ...multaPendiente, importe: 3, fecha: '2026-04-01' },
+          { ...multaPendiente, importe: 4 },
+          { ...multaPendiente, importe: 5, estado: 'pago_declarado', declarada_en: '2026-03-28T12:00:00Z' },
+          { ...multaPendiente, importe: 6, estado: 'pago_declarado', declarada_en: '2026-03-30T12:00:00Z' },
+          { ...multaPendiente, importe: 7, estado: 'pagada' },
+          { ...multaPendiente, importe: 8, estado: 'anulada' },
+        ],
+        hoy,
+      ),
+    ).toBe(28);
   });
 
   test('una jugadora sin multas tiene saldo cero', () => {
@@ -176,10 +177,15 @@ describe('saldoJugadora', () => {
   });
 
   test('conserva los céntimos al sumar multas', () => {
-    expect(saldoJugadora([
-      { ...multaPendiente, importe: 0.1 },
-      { ...multaPendiente, importe: 0.2 },
-    ], '2026-03-28')).toBe(0.3);
+    expect(
+      saldoJugadora(
+        [
+          { ...multaPendiente, importe: 0.1 },
+          { ...multaPendiente, importe: 0.2 },
+        ],
+        '2026-03-28',
+      ),
+    ).toBe(0.3);
   });
 });
 

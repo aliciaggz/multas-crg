@@ -1,31 +1,23 @@
-import { css, html, LitElement, nothing } from "lit";
-import catalogo from "../data/catalogo.json";
-import type { Temporada } from "../data/temporadas-demo";
-import {
-  coincideBusquedaJugadora,
-  euros,
-  nombreConcepto,
-} from "../lib/presentacion";
-import {
-  prepararRegistro,
-  proponerEscalon,
-  type RegistroMulta,
-  type ResultadoGuardado,
-} from "../lib/registro-multas";
-import { fechaEnMadrid, importeRegistro } from "../lib/reglas";
+import { css, html, LitElement, nothing, type PropertyValues } from 'lit';
+import catalogo from '../data/catalogo.json';
+import { aplicaDoble, enlaceFicha, esTecnico, estaActivo, etiquetaDestinatario } from '../lib/destinatarios';
+import type { Destinatario, Temporada } from '../data/temporadas-demo';
+import { coincideBusquedaJugadora, euros, nombreConcepto } from '../lib/presentacion';
+import { prepararRegistro, proponerEscalon, type RegistroMulta, type ResultadoGuardado } from '../lib/registro-multas';
+import { fechaEnMadrid, importeRegistro } from '../lib/reglas';
 
 const grupos = [
-  { id: "entreno", nombre: "Entrenamiento" },
-  { id: "partido", nombre: "Partido" },
+  { id: 'entreno', nombre: 'Entrenamiento' },
+  { id: 'partido', nombre: 'Partido' },
 ] as const;
-type Grupo = (typeof grupos)[number]["id"];
+type Grupo = (typeof grupos)[number]['id'];
 
 class CrgNuevaSancion extends LitElement {
   static properties = {
     temporada: { attribute: false },
     guardar: { attribute: false },
     busqueda: { state: true },
-    jugadoraId: { state: true },
+    fichaElegida: { state: true },
     grupo: { state: true },
     conceptoId: { state: true },
     cantidad: { state: true },
@@ -36,17 +28,13 @@ class CrgNuevaSancion extends LitElement {
     pagadaAhora: { state: true },
     guardando: { state: true },
     error: { state: true },
-    mensaje: { state: true },
     propuesta: { state: true },
   };
 
   declare temporada: Temporada;
-  declare guardar: (
-    multa: RegistroMulta,
-    temporadaId: string,
-  ) => Promise<ResultadoGuardado>;
+  declare guardar: (multa: RegistroMulta, temporadaId: string) => Promise<ResultadoGuardado>;
   declare private busqueda: string;
-  declare private jugadoraId: string;
+  declare private fichaElegida: string;
   declare private grupo: Grupo;
   declare private conceptoId: string;
   declare private cantidad: string;
@@ -57,19 +45,17 @@ class CrgNuevaSancion extends LitElement {
   declare private pagadaAhora: boolean;
   declare private guardando: boolean;
   declare private error: string;
-  declare private mensaje: string;
   declare private propuesta: ReturnType<typeof proponerEscalon>;
 
   constructor() {
     super();
-    this.busqueda = "";
-    this.jugadoraId = "";
-    this.grupo = "entreno";
+    this.busqueda = '';
+    this.fichaElegida = '';
+    this.grupo = 'entreno';
     this.limpiarConcepto();
     this.fecha = fechaEnMadrid(new Date());
     this.guardando = false;
-    this.error = "";
-    this.mensaje = "";
+    this.error = '';
   }
 
   static styles = css`
@@ -122,7 +108,7 @@ class CrgNuevaSancion extends LitElement {
       padding: 0;
     }
     legend::before {
-      content: "";
+      content: '';
       display: inline-block;
       width: 0.45rem;
       height: 0.45rem;
@@ -131,7 +117,7 @@ class CrgNuevaSancion extends LitElement {
       background: var(--color-rojo);
       vertical-align: 0.07rem;
     }
-    input:not([type="checkbox"]),
+    input:not([type='checkbox']),
     textarea {
       box-sizing: border-box;
       width: 100%;
@@ -180,8 +166,8 @@ class CrgNuevaSancion extends LitElement {
       border-radius: 999px;
       background: var(--color-suave);
     }
-    .chips button[aria-pressed="true"],
-    .opciones button[aria-pressed="true"] {
+    .chips button[aria-pressed='true'],
+    .opciones button[aria-pressed='true'] {
       background: var(--color-tarjeta-oscura);
       color: white;
     }
@@ -197,7 +183,7 @@ class CrgNuevaSancion extends LitElement {
       background: transparent;
       border-color: transparent;
     }
-    .grupo button[aria-pressed="true"] {
+    .grupo button[aria-pressed='true'] {
       background: var(--color-superficie);
       box-shadow: var(--sombra-tarjeta);
     }
@@ -217,7 +203,7 @@ class CrgNuevaSancion extends LitElement {
       white-space: nowrap;
       font: 700 0.83rem var(--fuente-etiqueta);
     }
-    .opciones button[aria-pressed="true"] .precio {
+    .opciones button[aria-pressed='true'] .precio {
       color: var(--color-dorado);
     }
     .campo-variable {
@@ -257,22 +243,13 @@ class CrgNuevaSancion extends LitElement {
       color: white;
       border-color: transparent;
     }
-    .error,
-    .confirmacion {
+    .error {
       margin-top: 0.65rem;
       font-size: 0.85rem;
       font-weight: 700;
     }
     .error {
       color: var(--color-rojo);
-    }
-    .confirmacion {
-      color: var(--color-verde);
-    }
-    .confirmacion a {
-      display: inline-flex;
-      align-items: center;
-      min-height: 44px;
     }
     .escalon {
       margin-top: 0.65rem;
@@ -284,39 +261,52 @@ class CrgNuevaSancion extends LitElement {
       margin-top: 0.6rem;
     }
     :focus-visible {
-      outline: 2px solid var(--color-rojo);
-      outline-offset: 2px;
+      outline: none;
     }
   `;
 
   private limpiarConcepto() {
-    this.conceptoId = "";
-    this.cantidad = "1";
-    this.minutos = "";
-    this.importeManual = "";
-    this.observacion = "";
+    this.conceptoId = '';
+    this.cantidad = '1';
+    this.minutos = '';
+    this.importeManual = '';
+    this.observacion = '';
     this.pagadaAhora = false;
   }
 
   private seleccionarConcepto(id: string) {
     this.conceptoId = id;
-    this.cantidad = "1";
-    this.minutos = "";
-    this.importeManual = "";
-    this.error = "";
-    this.mensaje = "";
+    this.cantidad = '1';
+    this.minutos = '';
+    this.importeManual = '';
+    this.error = '';
   }
 
-  private get jugadora() {
-    return this.temporada.jugadoras.find(
-      ({ id, activa }) => id === this.jugadoraId && activa !== false,
-    );
+  protected updated(cambios: PropertyValues) {
+    if (cambios.has('temporada') || cambios.has('fichaElegida')) {
+      this.propuesta = this.destinatario
+        ? proponerEscalon(this.destinatario, this.temporada.multas, fechaEnMadrid(new Date()))
+        : undefined;
+    }
+    if (cambios.has('propuesta') && this.propuesta) {
+      void this.updateComplete.then(() => {
+        this.renderRoot.querySelector<HTMLElement>('.escalon')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }
+
+  private get disponibles(): Destinatario[] {
+    return [...this.temporada.jugadoras, ...(this.temporada.tecnicos ?? [])].filter(estaActivo);
+  }
+
+  private get destinatario() {
+    return this.disponibles.find((persona) => enlaceFicha(persona) === this.fichaElegida);
   }
 
   private get vistaPrevia() {
     return prepararRegistro(
       {
-        jugadora: this.jugadora,
+        destinatario: this.destinatario,
         conceptoId: this.conceptoId,
         cantidad: this.cantidad,
         minutos: this.minutos,
@@ -329,19 +319,16 @@ class CrgNuevaSancion extends LitElement {
     );
   }
 
-  private async enviar(
-    multa: RegistroMulta,
-  ): Promise<ResultadoGuardado | undefined> {
+  private async enviar(multa: RegistroMulta): Promise<ResultadoGuardado | undefined> {
     if (this.guardando) return;
     this.guardando = true;
-    this.error = "";
+    this.error = '';
     try {
       const resultado = await this.guardar(multa, this.temporada.id);
       if (!resultado.ok) this.error = resultado.error;
       return resultado;
     } catch {
-      this.error =
-        "No se pudo confirmar el registro. Comprueba el detalle antes de volver a guardar.";
+      this.error = 'No se pudo confirmar el registro. Comprueba el detalle antes de volver a guardar.';
     } finally {
       this.guardando = false;
     }
@@ -349,105 +336,127 @@ class CrgNuevaSancion extends LitElement {
 
   private async registrar(evento: SubmitEvent) {
     evento.preventDefault();
-    const jugadora = this.jugadora;
+    const destinatario = this.destinatario;
     const previa = this.vistaPrevia;
-    if (!jugadora || !previa.ok || this.propuesta) return;
+    if (!destinatario) return;
+    if (this.propuesta && this.conceptoId === this.propuesta.multa.concepto_id) {
+      await this.registrarEscalon();
+      return;
+    }
+    if (!previa.ok || this.propuesta) return;
 
     const resultado = await this.enviar(previa.multa);
     if (!resultado?.ok) return;
-    this.mensaje =
-      previa.multa.importe === 0
-        ? "Falta registrada con importe de 0 €."
-        : "Multa registrada.";
-    if (!resultado.temporada)
-      this.mensaje +=
-        " Actualiza los datos para comprobar el saldo y las faltas.";
     if (previa.cuentaAsistencia && resultado.temporada) {
-      this.propuesta = proponerEscalon(
-        jugadora,
-        resultado.temporada.multas,
-        fechaEnMadrid(new Date()),
-      );
+      this.propuesta = proponerEscalon(destinatario, resultado.temporada.multas, fechaEnMadrid(new Date()));
     }
     this.limpiarConcepto();
   }
 
   private async registrarEscalon() {
     if (!this.propuesta) return;
+    const destinatario = this.destinatario;
     const resultado = await this.enviar(this.propuesta.multa);
     if (!resultado?.ok) return;
     this.propuesta = undefined;
-    this.mensaje = "Escalón registrado.";
+    if (destinatario) {
+      this.dispatchEvent(
+        new CustomEvent('bono-registrado', {
+          detail: enlaceFicha(destinatario),
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
   }
 
   render() {
     const hoy = fechaEnMadrid(new Date());
-    const jugadora = this.jugadora;
-    const jugadoras = this.temporada.jugadoras.filter(
-      (jugadora) =>
-        jugadora.activa !== false &&
-        coincideBusquedaJugadora(jugadora, this.busqueda),
-    );
-    const conceptos = catalogo.filter(
-      ({ grupo, id }) => grupo === this.grupo && id !== "par_tarde_20",
-    );
-    const tarifasTardanza = catalogo
-      .filter(({ tipo }) => tipo === "tardanza")
-      .map((concepto) =>
-        euros(importeRegistro(concepto, 1, Boolean(jugadora?.capitana))),
-      )
-      .join(" / ");
+    const destinatario = this.destinatario;
+    const busqueda = this.busqueda.trim();
+    const coincidencias = busqueda
+      ? this.disponibles.filter((persona) => coincideBusquedaJugadora(persona, busqueda))
+      : [];
+    const precio = (concepto: (typeof catalogo)[number]) => importeRegistro(concepto, 1, aplicaDoble(destinatario));
+    const tarifasTardanza = catalogo.filter(({ tipo }) => tipo === 'tardanza').map(precio);
+    const conceptos = catalogo
+      .filter(({ grupo, id }) => grupo === this.grupo && id !== 'par_tarde_20')
+      .map((concepto) => ({
+        concepto,
+        tarifas: concepto.id === 'par_tarde' ? tarifasTardanza : [precio(concepto)],
+      }))
+      .sort((a, b) => a.tarifas[0] - b.tarifas[0]);
     const seleccionado = catalogo.find(({ id }) => id === this.conceptoId);
-    const manual = this.conceptoId === "ajuste_manual";
+    const manual = this.conceptoId === 'ajuste_manual';
     const previa = this.vistaPrevia;
+    const bonoSeleccionado = Boolean(this.propuesta && this.conceptoId === this.propuesta.multa.concepto_id);
+    const puedeGuardar = bonoSeleccionado || (previa.ok && !this.propuesta);
 
     return html`
-      <a class="volver" href="#staff">← Volver a Staff</a>
+      <a class="volver" href="#inicio">← Volver a Inicio</a>
       <header class="cabecera">
-        <h1>Nueva sanción</h1>
+        <h1>Nueva multa</h1>
         <span class="temporada">${this.temporada.nombre}</span>
       </header>
-      <form
-        novalidate
-        @submit=${this.registrar}
-        aria-busy=${this.guardando ? "true" : "false"}
-      >
-        <fieldset ?disabled=${this.guardando || Boolean(this.propuesta)}>
+      <form novalidate @submit=${this.registrar} aria-busy=${this.guardando ? 'true' : 'false'}>
+        <fieldset ?disabled=${this.guardando}>
           <fieldset class="bloque">
-            <legend>Jugadora</legend>
-            <input
-              type="search"
-              aria-label="Buscar jugadora por dorsal o nombre"
-              placeholder="Buscar por dorsal o nombre…"
-              .value=${this.busqueda}
-              @input=${(evento: Event) => {
-                this.busqueda = valor(evento);
-              }}
-            />
-            <div class="chips">
-              ${jugadoras.map(
-                ({ id, nombre, dorsal, capitana }) =>
-                  html`<button
-                    type="button"
-                    aria-pressed=${this.jugadoraId === id ? "true" : "false"}
-                    @click=${() => {
-                      this.jugadoraId = id;
-                      this.error = "";
-                      this.mensaje = "";
-                    }}
-                  >
-                    #${dorsal}
-                    ${nombre}${capitana
-                      ? html` <span aria-label="Capitana">C</span>`
-                      : nothing}
-                  </button>`,
-              )}
-              ${!jugadoras.length
-                ? html`<p class="aviso">
-                    No hay jugadoras disponibles para esta búsqueda.
-                  </p>`
-                : nothing}
-            </div>
+            <legend>Destinatario</legend>
+            ${
+              destinatario
+                ? html`<div class="chips">
+                    <p class="aviso">
+                      ${etiquetaDestinatario(destinatario)} ·
+                      ${esTecnico(destinatario) ? 'Cuerpo técnico' : 'Jugadoras'}
+                    </p>
+                    <button
+                      type="button"
+                      @click=${() => {
+                        this.fichaElegida = '';
+                        this.busqueda = '';
+                        this.error = '';
+                      }}
+                    >
+                      Cambiar destinatario
+                    </button>
+                  </div>`
+                : html`
+                    <input
+                      type="search"
+                      aria-label="Buscar jugadora o entrenador por nombre, o jugadora por dorsal"
+                      placeholder="Buscar por nombre o dorsal…"
+                      .value=${this.busqueda}
+                      @input=${(evento: Event) => {
+                        this.busqueda = valor(evento);
+                      }}
+                    />
+                    <div class="chips">
+                      ${coincidencias.map(
+                        (persona) =>
+                          html`<button
+                            type="button"
+                            @click=${() => {
+                              this.fichaElegida = enlaceFicha(persona);
+                              this.error = '';
+                            }}
+                          >
+                            ${etiquetaDestinatario(persona)} · ${esTecnico(persona) ? 'Cuerpo técnico' : 'Jugadoras'}
+                          </button>`,
+                      )}
+                      ${
+                        !coincidencias.length
+                          ? html`<p class="aviso">
+                              ${
+                                busqueda
+                                  ? 'No hay coincidencias para esta búsqueda.'
+                                  : 'Escribe un nombre o dorsal para buscar.'
+                              }
+                            </p>`
+                          : nothing
+                      }
+                    </div>
+                  `
+            }
           </fieldset>
           <fieldset class="bloque">
             <legend>Concepto</legend>
@@ -456,11 +465,11 @@ class CrgNuevaSancion extends LitElement {
                 ({ id, nombre }) =>
                   html`<button
                     type="button"
-                    aria-pressed=${this.grupo === id ? "true" : "false"}
+                    aria-pressed=${this.grupo === id ? 'true' : 'false'}
                     @click=${() => {
                       if (this.grupo !== id) {
                         this.grupo = id;
-                        this.seleccionarConcepto("");
+                        this.seleccionarConcepto('');
                       }
                     }}
                   >
@@ -470,78 +479,84 @@ class CrgNuevaSancion extends LitElement {
             </div>
             <div class="opciones">
               ${conceptos.map(
-                (concepto) =>
+                ({ concepto, tarifas }) =>
                   html`<button
                     type="button"
-                    aria-pressed=${this.conceptoId === concepto.id
-                      ? "true"
-                      : "false"}
+                    aria-pressed=${this.conceptoId === concepto.id ? 'true' : 'false'}
                     @click=${() => this.seleccionarConcepto(concepto.id)}
                   >
                     <span>${concepto.nombre}</span>
                     <span class="precio"
-                      >${concepto.id === "par_tarde"
-                        ? tarifasTardanza
-                        : euros(
-                            importeRegistro(
-                              concepto,
-                              1,
-                              Boolean(jugadora?.capitana),
-                            ),
-                          )}${concepto.tipo === "por_prenda"
-                        ? " / prenda"
-                        : nothing}</span
+                      >${tarifas.map(euros).join(' / ')}${concepto.tipo === 'por_prenda' ? ' / prenda' : nothing}</span
                     >
                   </button>`,
               )}
+              ${
+                this.propuesta
+                  ? html`<button
+                      type="button"
+                      aria-pressed=${bonoSeleccionado ? 'true' : 'false'}
+                      @click=${() => this.seleccionarConcepto(this.propuesta!.multa.concepto_id)}
+                    >
+                      <span>Bono de asistencia · ${this.propuesta.faltas} faltas</span>
+                      <span class="precio">${euros(this.propuesta.multa.importe)}</span>
+                    </button>`
+                  : nothing
+              }
               <button
                 type="button"
-                aria-pressed=${manual ? "true" : "false"}
-                @click=${() => this.seleccionarConcepto("ajuste_manual")}
+                aria-pressed=${manual ? 'true' : 'false'}
+                @click=${() => this.seleccionarConcepto('ajuste_manual')}
               >
                 Ajuste manual
               </button>
             </div>
-            ${seleccionado?.tipo === "por_prenda"
-              ? html`<label class="campo-variable"
-                  >Cantidad de prendas
-                  <input
-                    type="number"
-                    name="cantidad"
-                    min="1"
-                    step="1"
-                    .value=${this.cantidad}
-                    @input=${(evento: Event) => {
-                      this.cantidad = valor(evento);
-                    }}
-                /></label>`
-              : nothing}
-            ${this.conceptoId === "par_tarde"
-              ? html`<label class="campo-variable"
-                  >Minutos desde la convocatoria
-                  <input
-                    type="number"
-                    name="minutos"
-                    min="0"
-                    step="1"
-                    .value=${this.minutos}
-                    @input=${(evento: Event) => {
-                      this.minutos = valor(evento);
-                    }}
-                /></label>`
-              : nothing}
-            ${manual
-              ? html`<label class="campo-variable"
-                  >Importe en euros
-                  <input
-                    inputmode="decimal"
-                    name="importe"
-                    .value=${this.importeManual}
-                    @input=${(evento: Event) => {
-                      this.importeManual = valor(evento);
-                    }}
-                /></label>`
-              : nothing}
+            ${
+              seleccionado?.tipo === 'por_prenda'
+                ? html`<label class="campo-variable"
+                    >Cantidad de prendas
+                    <input
+                      type="number"
+                      name="cantidad"
+                      min="1"
+                      step="1"
+                      .value=${this.cantidad}
+                      @input=${(evento: Event) => {
+                        this.cantidad = valor(evento);
+                      }}
+                  /></label>`
+                : nothing
+            }
+            ${
+              this.conceptoId === 'par_tarde'
+                ? html`<label class="campo-variable"
+                    >Minutos desde la convocatoria
+                    <input
+                      type="number"
+                      name="minutos"
+                      min="0"
+                      step="1"
+                      .value=${this.minutos}
+                      @input=${(evento: Event) => {
+                        this.minutos = valor(evento);
+                      }}
+                  /></label>`
+                : nothing
+            }
+            ${
+              manual
+                ? html`<label class="campo-variable"
+                    >Importe en euros
+                    <input
+                      inputmode="decimal"
+                      name="importe"
+                      .value=${this.importeManual}
+                      @input=${(evento: Event) => {
+                        this.importeManual = valor(evento);
+                      }}
+                  /></label>`
+                : nothing
+            }
           </fieldset>
           <fieldset class="bloque">
             <legend>Fecha y observaciones</legend>
@@ -556,7 +571,7 @@ class CrgNuevaSancion extends LitElement {
                 }}
             /></label>
             <label
-              >${manual ? "Motivo del ajuste" : "Observaciones (opcional)"}
+              >${manual ? 'Motivo del ajuste' : 'Observaciones (opcional)'}
               <textarea
                 name="observacion"
                 .value=${this.observacion}
@@ -568,74 +583,69 @@ class CrgNuevaSancion extends LitElement {
           </fieldset>
           <div class="resumen">
             <p class="aviso" aria-live="polite">
-              ${previa.ok && jugadora
-                ? `#${jugadora.dorsal} ${jugadora.nombre} · ${nombreConcepto(previa.multa.concepto_id)}`
-                : previa.ok
-                  ? ""
-                  : previa.mensaje}
+              ${
+                bonoSeleccionado
+                  ? `${etiquetaDestinatario(destinatario!)} · Bono de asistencia pendiente`
+                  : previa.ok && destinatario
+                    ? `${etiquetaDestinatario(destinatario)} · ${nombreConcepto(previa.multa.concepto_id)}`
+                    : previa.ok
+                      ? ''
+                      : previa.mensaje
+              }
             </p>
-            <label class="pagar"
-              ><input
-                type="checkbox"
-                name="pagar"
-                .checked=${this.pagadaAhora}
-                @change=${(evento: Event) => {
-                  this.pagadaAhora = (
-                    evento.currentTarget as HTMLInputElement
-                  ).checked;
-                }}
-              />
-              Pagar ahora</label
-            >
-            <button
-              type="submit"
-              class="confirmar guardar"
-              ?disabled=${!previa.ok}
-            >
-              ${this.guardando
-                ? "Guardando…"
-                : `Guardar multa${previa.ok ? ` (${euros(previa.total)})` : ""}`}
+            ${
+              bonoSeleccionado
+                ? nothing
+                : html`<label class="pagar"
+                    ><input
+                      type="checkbox"
+                      name="pagar"
+                      .checked=${this.pagadaAhora}
+                      @change=${(evento: Event) => {
+                        this.pagadaAhora = (evento.currentTarget as HTMLInputElement).checked;
+                      }}
+                    />
+                    ${destinatario && esTecnico(destinatario) ? 'El entrenador ya ha pagado' : 'La jugadora ya ha pagado'}</label
+                  >`
+            }
+            <button type="submit" class="confirmar guardar" ?disabled=${!puedeGuardar}>
+              ${
+                this.guardando
+                  ? 'Guardando…'
+                  : bonoSeleccionado
+                    ? `Registrar bono pendiente (${euros(this.propuesta!.multa.importe)})`
+                    : `Guardar multa${previa.ok ? ` (${euros(previa.total)})` : ''}`
+              }
             </button>
           </div>
         </fieldset>
       </form>
-      ${this.mensaje
-        ? html`<p class="confirmacion" role="status">
-            ${this.mensaje} <a href="#jugadoras">Ver plantilla</a>
-          </p>`
-        : nothing}
-      ${this.error
-        ? html`<p class="error" role="alert">${this.error}</p>`
-        : nothing}
-      ${this.propuesta && jugadora
-        ? html`<section class="escalon" aria-label="Confirmar escalón">
-            <p>
-              ${jugadora.nombre} lleva ${this.propuesta.faltas} faltas.
-              Corresponde registrar ${euros(this.propuesta.multa.importe)} por
-              el escalón.
-            </p>
-            <div class="acciones">
-              <button
-                type="button"
-                class="confirmar"
-                ?disabled=${this.guardando}
-                @click=${this.registrarEscalon}
-              >
-                Registrar escalón
-              </button>
-              <button
-                type="button"
-                ?disabled=${this.guardando}
-                @click=${() => {
-                  this.propuesta = undefined;
-                  this.error = "";
-                }}
-              >
-                Ahora no
-              </button>
-            </div>
-          </section>`
-        : nothing}
+      ${this.error ? html`<p class="error" role="alert">${this.error}</p>` : nothing}
+      ${
+        this.propuesta && destinatario
+          ? html`<section class="escalon" aria-label="Confirmar bono de asistencia" role="status" aria-live="polite">
+              <p>
+                ${destinatario.nombre} lleva ${this.propuesta.faltas} faltas. El bono de asistencia de
+                ${euros(this.propuesta.multa.importe)} está pendiente de registrar; quedará como multa pendiente.
+              </p>
+              <div class="acciones">
+                <button type="button" class="confirmar" ?disabled=${this.guardando} @click=${this.registrarEscalon}>
+                  Registrar bono pendiente
+                </button>
+                <button
+                  type="button"
+                  ?disabled=${this.guardando}
+                  @click=${() => {
+                    this.propuesta = undefined;
+                    this.error = '';
+                  }}
+                >
+                  Ahora no
+                </button>
+              </div>
+            </section>`
+          : nothing
+      }
     `;
   }
 }
@@ -644,4 +654,4 @@ function valor(evento: Event): string {
   return (evento.currentTarget as HTMLInputElement | HTMLTextAreaElement).value;
 }
 
-customElements.define("crg-nueva-sancion", CrgNuevaSancion);
+customElements.define('crg-nueva-sancion', CrgNuevaSancion);

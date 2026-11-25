@@ -29,8 +29,8 @@
   {
     "id": "ent_falta_con_aviso",
     "grupo": "entreno",
-    "nombre": "Faltar avisando con 4 h o más",
-    "descripcion": "Avisar de la falta al entrenamiento con al menos 4 horas de antelación.",
+    "nombre": "Faltar avisando con 4 h o más (bono)",
+    "descripcion": "Avisar de la falta al entrenamiento con al menos 4 horas de antelación. Cuenta para el bono de asistencia.",
     "importe": 0,
     "tipo": "fijo",
     "cuenta_asistencia": true
