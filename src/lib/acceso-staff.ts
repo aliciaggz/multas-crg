@@ -1,45 +1,81 @@
-import type { CredencialesStaff, RespuestaRpc } from "./supabase";
+import type { RespuestaInicioSesion } from './supabase';
 
-export type AccesoStaff = ReturnType<typeof crearAccesoStaff>;
-type ResultadoAcceso =
-  | { estado: "correcto"; usuario: string }
-  | { estado: "incorrecto" | "bloqueado" };
+type ResultadoAcceso = { estado: 'correcto'; usuario: string; token: string }
+  | { estado: 'incorrecto' | 'bloqueado' };
 
-/** Supabase decide si permite el acceso. La espera local solo informa a quien usa esta pestaña. */
+export type AccesoStaff = {
+  intentar(pin: string): Promise<ResultadoAcceso>;
+  segundosRestantes(): number;
+};
+
+export type SesionGuardada = { token: string; cierrePendiente?: true };
+
+export const tokenValido = (token: unknown): token is string =>
+  typeof token === 'string' && /^[0-9a-f]{64}$/.test(token);
+
+/** Supabase fija el bloqueo. La cuenta atrás evita solicitudes durante ese intervalo. */
 export function crearAccesoStaff(
-  verificar: (
-    credenciales: CredencialesStaff,
-  ) => Promise<RespuestaRpc<{ usuario: string }>>,
+  verificar: (pin: string) => Promise<RespuestaInicioSesion>,
   ahora = () => Date.now(),
-) {
-  const intentos = new Map<string, { fallos: number; hasta: number }>();
+): AccesoStaff {
+  let hasta = 0;
+  const segundosRestantes = () => Math.max(0, Math.ceil((hasta - ahora()) / 1000));
 
-  function segundosRestantes(usuario: string): number {
-    const intento = intentos.get(usuario.trim().toLowerCase());
-    return intento
-      ? Math.max(0, Math.ceil((intento.hasta - ahora()) / 1000))
-      : 0;
-  }
-
-  async function intentar(
-    nombre: string,
-    pin: string,
-  ): Promise<ResultadoAcceso> {
-    const usuario = nombre.trim().toLowerCase();
-    if (segundosRestantes(usuario)) return { estado: "bloqueado" };
-
-    const respuesta = await verificar({ usuario, pin });
+  async function intentar(pin: string): Promise<ResultadoAcceso> {
+    if (segundosRestantes()) return { estado: 'bloqueado' };
+    const respuesta = await verificar(pin);
     if (respuesta.ok) {
-      intentos.delete(usuario);
-      return { estado: "correcto", usuario: respuesta.usuario };
+      if (!tokenValido(respuesta.token) || typeof respuesta.usuario !== 'string' || !respuesta.usuario) {
+        throw new Error('La respuesta de acceso no es válida.');
+      }
+      return { estado: 'correcto', usuario: respuesta.usuario, token: respuesta.token };
     }
-
-    const anterior = intentos.get(usuario);
-    const fallos = (anterior?.hasta ? 0 : (anterior?.fallos ?? 0)) + 1;
-    const hasta = fallos === 5 ? ahora() + 60_000 : 0;
-    intentos.set(usuario, { fallos, hasta });
-    return { estado: hasta ? "bloqueado" : "incorrecto" };
+    if (typeof respuesta.reintentar_en === 'number' && Number.isFinite(respuesta.reintentar_en) && respuesta.reintentar_en > 0) {
+      hasta = ahora() + respuesta.reintentar_en * 1000;
+    }
+    return { estado: segundosRestantes() ? 'bloqueado' : 'incorrecto' };
   }
 
   return { intentar, segundosRestantes };
+}
+
+type Almacen = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+function almacenamientoLocal(): Almacen | undefined {
+  try { return globalThis.localStorage; } catch { return undefined; }
+}
+
+export function crearAlmacenSesionStaff(urlProyecto?: string, almacen = almacenamientoLocal()) {
+  let clave: string | undefined;
+  try {
+    if (urlProyecto) clave = `multas-crg:sesion-staff:v1:${new URL(urlProyecto.trim()).origin}`;
+  } catch { /* Sin proyecto válido, solo se usa la sesión en memoria. */ }
+
+  function leer(): SesionGuardada | undefined {
+    if (!clave || !almacen) return;
+    try {
+      const json = almacen.getItem(clave);
+      const datos = json ? JSON.parse(json) as Partial<SesionGuardada> | null : null;
+      if (tokenValido(datos?.token)) {
+        return { token: datos.token, ...(datos.cierrePendiente === true ? { cierrePendiente: true } : {}) };
+      }
+    } catch { /* Un valor inválido no habilita una sesión. */ }
+  }
+
+  return {
+    clave,
+    leer,
+    guardar(sesion: SesionGuardada) {
+      if (!clave || !almacen) return;
+      try {
+        almacen.setItem(clave, JSON.stringify({
+          token: sesion.token, ...(sesion.cierrePendiente ? { cierrePendiente: true } : {}),
+        }));
+      } catch { /* La sesión sigue disponible en memoria. */ }
+    },
+    quitar(token: string) {
+      if (!clave || !almacen || leer()?.token !== token) return;
+      try { almacen.removeItem(clave); } catch { /* Supabase ya ha invalidado ese token. */ }
+    },
+  };
 }

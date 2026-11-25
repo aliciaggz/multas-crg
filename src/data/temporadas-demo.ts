@@ -9,9 +9,19 @@ export type Jugadora = {
   activa?: boolean;
 };
 
-export type Multa = {
+export type Tecnico = {
+  tipo: "tecnico";
+  id: string;
+  nombre: string;
+  activo?: boolean;
+};
+export type Destinatario = Jugadora | Tecnico;
+export type ReferenciaMulta =
+  | { jugadora_id: string; tecnico_id?: never }
+  | { tecnico_id: string; jugadora_id?: never };
+
+export type Multa = ReferenciaMulta & {
   id?: string;
-  jugadora_id: string;
   concepto_id: string;
   importe: number;
   importe_cobrado?: number | null;
@@ -37,6 +47,7 @@ export type Temporada = {
   activa: boolean;
   huchaInicial: number;
   jugadoras: readonly Jugadora[];
+  tecnicos?: readonly Tecnico[];
   multas: readonly Multa[];
   gastos: readonly { motivo: string; fecha: string; importe: number }[];
   historialHuchaInicial?: readonly AjusteHucha[];

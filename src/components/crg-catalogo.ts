@@ -48,7 +48,7 @@ class CrgCatalogo extends LitElement {
   `;
 
   private grupo(id: 'entreno' | 'partido', nombre: string) {
-    const conceptos = catalogo.filter((concepto) => concepto.grupo === id);
+    const conceptos = catalogo.filter((concepto) => concepto.grupo === id).sort((a, b) => a.importe - b.importe);
     return html`<section class=${id}>
       <h2 class="cabecera">${nombre}</h2>
       <ul class="conceptos">${conceptos.map((concepto) => this.concepto(concepto))}</ul>
@@ -75,7 +75,7 @@ class CrgCatalogo extends LitElement {
         <section>
           <h2>Escalones de asistencia</h2>
           <p class="descripcion">Total base por temporada según el último escalón alcanzado.</p>
-          <ul class="escalones">${catalogo.filter(({ grupo }) => grupo === 'escalon').map((concepto) => html`
+          <ul class="escalones">${catalogo.filter(({ grupo }) => grupo === 'escalon').sort((a, b) => a.importe - b.importe).map((concepto) => html`
             <li><span>${concepto.id.slice(4)} faltas</span><strong>${euros(concepto.importe)}</strong></li>
           `)}</ul>
         </section>
