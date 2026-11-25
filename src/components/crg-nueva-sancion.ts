@@ -1,4 +1,4 @@
-import { css, html, LitElement, nothing } from 'lit';
+import { css, html, LitElement, nothing, type PropertyValues } from 'lit';
 import catalogo from '../data/catalogo.json';
 import { aplicaDoble, enlaceFicha, esTecnico, estaActivo, etiquetaDestinatario } from '../lib/destinatarios';
 import type { Destinatario, Temporada } from '../data/temporadas-demo';
@@ -88,7 +88,7 @@ class CrgNuevaSancion extends LitElement {
     .error { color: var(--color-rojo); }
     .escalon { margin-top: 0.65rem; }
     .acciones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   private limpiarConcepto() {
@@ -106,6 +106,20 @@ class CrgNuevaSancion extends LitElement {
     this.minutos = '';
     this.importeManual = '';
     this.error = '';
+  }
+
+  protected updated(cambios: PropertyValues) {
+    if (cambios.has('temporada') || cambios.has('fichaElegida')) {
+      this.propuesta = this.destinatario
+        ? proponerEscalon(this.destinatario, this.temporada.multas, fechaEnMadrid(new Date()))
+        : undefined;
+    }
+    if (cambios.has('propuesta') && this.propuesta) {
+      void this.updateComplete.then(() => {
+        this.renderRoot.querySelector<HTMLElement>('.escalon')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
   }
 
   private get disponibles(): Destinatario[] {
@@ -143,7 +157,12 @@ class CrgNuevaSancion extends LitElement {
     evento.preventDefault();
     const destinatario = this.destinatario;
     const previa = this.vistaPrevia;
-    if (!destinatario || !previa.ok || this.propuesta) return;
+    if (!destinatario) return;
+    if (this.propuesta && this.conceptoId === this.propuesta.multa.concepto_id) {
+      await this.registrarEscalon();
+      return;
+    }
+    if (!previa.ok || this.propuesta) return;
 
     const resultado = await this.enviar(previa.multa);
     if (!resultado?.ok) return;
@@ -155,9 +174,17 @@ class CrgNuevaSancion extends LitElement {
 
   private async registrarEscalon() {
     if (!this.propuesta) return;
+    const destinatario = this.destinatario;
     const resultado = await this.enviar(this.propuesta.multa);
     if (!resultado?.ok) return;
     this.propuesta = undefined;
+    if (destinatario) {
+      this.dispatchEvent(new CustomEvent('bono-registrado', {
+        detail: enlaceFicha(destinatario),
+        bubbles: true,
+        composed: true,
+      }));
+    }
   }
 
   render() {
@@ -177,12 +204,15 @@ class CrgNuevaSancion extends LitElement {
     const seleccionado = catalogo.find(({ id }) => id === this.conceptoId);
     const manual = this.conceptoId === 'ajuste_manual';
     const previa = this.vistaPrevia;
+    const bonoSeleccionado = Boolean(this.propuesta && this.conceptoId === this.propuesta.multa.concepto_id);
+    const puedeGuardar = bonoSeleccionado
+      || (previa.ok && !this.propuesta);
 
     return html`
       <a class="volver" href="#inicio">← Volver a Inicio</a>
       <header class="cabecera"><h1>Nueva multa</h1><span class="temporada">${this.temporada.nombre}</span></header>
       <form novalidate @submit=${this.registrar} aria-busy=${this.guardando ? 'true' : 'false'}>
-        <fieldset ?disabled=${this.guardando || Boolean(this.propuesta)}>
+        <fieldset ?disabled=${this.guardando}>
           <fieldset class="bloque">
             <legend>Destinatario</legend>
             ${destinatario ? html`<div class="chips">
@@ -214,6 +244,12 @@ class CrgNuevaSancion extends LitElement {
                 <span>${concepto.nombre}</span>
                 <span class="precio">${tarifas.map(euros).join(' / ')}${concepto.tipo === 'por_prenda' ? ' / prenda' : nothing}</span>
               </button>`)}
+              ${this.propuesta ? html`<button type="button"
+                aria-pressed=${bonoSeleccionado ? 'true' : 'false'}
+                @click=${() => this.seleccionarConcepto(this.propuesta!.multa.concepto_id)}>
+                <span>Bono de asistencia · ${this.propuesta.faltas} faltas</span>
+                <span class="precio">${euros(this.propuesta.multa.importe)}</span>
+              </button>` : nothing}
               <button type="button" aria-pressed=${manual ? 'true' : 'false'} @click=${() => this.seleccionarConcepto('ajuste_manual')}>Ajuste manual</button>
             </div>
             ${seleccionado?.tipo === 'por_prenda' ? html`<label class="campo-variable">Cantidad de prendas
@@ -230,22 +266,28 @@ class CrgNuevaSancion extends LitElement {
               <textarea name="observacion" .value=${this.observacion} @input=${(evento: Event) => { this.observacion = valor(evento); }}></textarea></label>
           </fieldset>
           <div class="resumen">
-            <p class="aviso" aria-live="polite">${previa.ok && destinatario
+            <p class="aviso" aria-live="polite">${bonoSeleccionado
+              ? `${etiquetaDestinatario(destinatario!)} · Bono de asistencia pendiente`
+              : previa.ok && destinatario
               ? `${etiquetaDestinatario(destinatario)} · ${nombreConcepto(previa.multa.concepto_id)}`
               : previa.ok ? '' : previa.mensaje}</p>
-            <label class="pagar"><input type="checkbox" name="pagar" .checked=${this.pagadaAhora}
-              @change=${(evento: Event) => { this.pagadaAhora = (evento.currentTarget as HTMLInputElement).checked; }}> ${destinatario && esTecnico(destinatario) ? 'El entrenador ya ha pagado' : 'La jugadora ya ha pagado'}</label>
-            <button type="submit" class="confirmar guardar" ?disabled=${!previa.ok}>
-              ${this.guardando ? 'Guardando…' : `Guardar multa${previa.ok ? ` (${euros(previa.total)})` : ''}`}
+            ${bonoSeleccionado ? nothing : html`<label class="pagar"><input type="checkbox" name="pagar" .checked=${this.pagadaAhora}
+              @change=${(evento: Event) => { this.pagadaAhora = (evento.currentTarget as HTMLInputElement).checked; }}> ${destinatario && esTecnico(destinatario) ? 'El entrenador ya ha pagado' : 'La jugadora ya ha pagado'}</label>`}
+            <button type="submit" class="confirmar guardar" ?disabled=${!puedeGuardar}>
+              ${this.guardando ? 'Guardando…' : bonoSeleccionado
+                ? `Registrar bono pendiente (${euros(this.propuesta!.multa.importe)})`
+                : `Guardar multa${previa.ok ? ` (${euros(previa.total)})` : ''}`}
             </button>
           </div>
         </fieldset>
       </form>
       ${this.error ? html`<p class="error" role="alert">${this.error}</p>` : nothing}
-      ${this.propuesta && destinatario ? html`<section class="escalon" aria-label="Confirmar escalón">
-        <p>${destinatario.nombre} lleva ${this.propuesta.faltas} faltas. Corresponde registrar ${euros(this.propuesta.multa.importe)} por el escalón.</p>
+      ${this.propuesta && destinatario ? html`<section class="escalon" aria-label="Confirmar bono de asistencia"
+        role="status" aria-live="polite">
+        <p>${destinatario.nombre} lleva ${this.propuesta.faltas} faltas. El bono de asistencia de
+          ${euros(this.propuesta.multa.importe)} está pendiente de registrar; quedará como multa pendiente.</p>
         <div class="acciones">
-          <button type="button" class="confirmar" ?disabled=${this.guardando} @click=${this.registrarEscalon}>Registrar escalón</button>
+          <button type="button" class="confirmar" ?disabled=${this.guardando} @click=${this.registrarEscalon}>Registrar bono pendiente</button>
           <button type="button" ?disabled=${this.guardando} @click=${() => { this.propuesta = undefined; this.error = ''; }}>Ahora no</button>
         </div>
       </section>` : nothing}

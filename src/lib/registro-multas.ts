@@ -89,3 +89,39 @@ export function proponerEscalon(destinatario: Destinatario, multas: readonly Mul
   };
   return { faltas, multa };
 }
+
+export function progresoEscalones(destinatario: Destinatario, multas: readonly Multa[], fecha: string) {
+  const propias = multasDe(destinatario, multas);
+  const faltas = contarFaltas(propias);
+  const registrados = propias.map((multa) => ({
+    ...multa,
+    importeBase: multa.importe / (multa.multiplicador ?? 1),
+  }));
+  const importeRegistrado = registrados
+    .filter(({ concepto_id, estado }) => concepto_id.startsWith('esc_') && estado !== 'anulada')
+    .reduce((total, { importeBase }) => total + importeBase, 0);
+  const propuesta = proponerEscalon(destinatario, propias, fecha);
+  const nivelPropuesto = propuesta
+    ? Number(propuesta.multa.concepto_id.slice('esc_'.length))
+    : undefined;
+
+  return catalogo
+    .filter(({ tipo }) => tipo === 'escalon')
+    .map(({ id, importe }) => {
+      const nivel = Number(id.slice('esc_'.length));
+      const completado = importeRegistrado >= importe;
+      const pendiente = nivelPropuesto === nivel;
+      const incluidoEn = nivelPropuesto && faltas >= nivel && !pendiente
+        ? nivelPropuesto
+        : undefined;
+      return {
+        nivel,
+        estado: completado ? 'completado' as const
+          : pendiente ? 'pendiente' as const
+            : incluidoEn ? 'incluido' as const : 'por-alcanzar' as const,
+        importe: pendiente ? propuesta!.multa.importe : 0,
+        faltasRestantes: Math.max(0, nivel - faltas),
+        incluidoEn,
+      };
+    });
+}

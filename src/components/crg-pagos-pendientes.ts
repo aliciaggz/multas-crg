@@ -25,7 +25,7 @@ class CrgPagosPendientes extends LitElement {
     h2 { font-size: 0.95rem; }
     h2 a { display: inline-flex; align-items: center; min-height: 44px; }
     strong { font: 700 1.1rem var(--fuente-etiqueta); white-space: nowrap; }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   render() {

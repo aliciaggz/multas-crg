@@ -71,7 +71,7 @@ class CrgHeader extends LitElement {
       header { padding-inline: 0.65rem; gap: 0.4rem; }
       summary, .en-acceso { font-size: 0.76rem; }
     }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   private cambiarTemporada(evento: Event) {

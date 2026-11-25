@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { prepararRegistro, proponerEscalon } from '../src/lib/registro-multas';
+import { prepararRegistro, progresoEscalones, proponerEscalon } from '../src/lib/registro-multas';
 import type { Multa } from '../src/data/temporadas-demo';
 
 const jugadora = { id: 'jugadora', nombre: 'Capitana de prueba', dorsal: 4, capitana: true };
@@ -40,6 +40,42 @@ test('propone solo la diferencia del nuevo escalón con el multiplicador de capi
   const registrado: Multa = { ...falta, concepto_id: 'esc_3', importe: 8, multiplicador: 2 };
   expect(proponerEscalon(jugadora, [registrado, ...Array.from({ length: 6 }, () => falta)], hoy))
     .toMatchObject({ faltas: 6, multa: { concepto_id: 'esc_6', importe: 4, multiplicador: 2, pagada_ahora: false } });
+});
+
+test('al registrar la tercera falta gratuita propone un bono base de 4 €', () => {
+  const jugadoraSinCapitania = { ...jugadora, capitana: false };
+  const falta: Multa = {
+    jugadora_id: jugadoraSinCapitania.id,
+    concepto_id: 'ent_falta_con_aviso',
+    importe: 0,
+    fecha: hoy,
+    estado: 'pagada',
+  };
+  expect(proponerEscalon(jugadoraSinCapitania, [falta, falta, falta], hoy))
+    .toMatchObject({ faltas: 3, multa: { concepto_id: 'esc_3', importe: 4, pagada_ahora: false } });
+});
+
+test('el progreso muestra el bono de 3 faltas pendiente y lo completa al registrarlo', () => {
+  const faltas: Multa[] = Array.from({ length: 3 }, () => ({
+    jugadora_id: jugadora.id,
+    concepto_id: 'ent_falta_con_aviso',
+    importe: 0,
+    fecha: hoy,
+    estado: 'pagada',
+  }));
+  expect(progresoEscalones(jugadora, faltas, hoy)[0]).toMatchObject({
+    nivel: 3,
+    estado: 'pendiente',
+    importe: 8,
+  });
+  expect(progresoEscalones(jugadora, [
+    ...faltas,
+    { jugadora_id: jugadora.id, concepto_id: 'esc_3', importe: 8, multiplicador: 2, fecha: hoy, estado: 'pendiente' },
+  ], hoy)[0]).toMatchObject({
+    nivel: 3,
+    estado: 'completado',
+    importe: 0,
+  });
 });
 
 test('el entrenador recibe el multiplicador de catálogo, con la excepción del ajuste manual', () => {

@@ -38,11 +38,11 @@ class CrgAcceso extends LitElement {
     label { display: block; color: var(--color-primario); font-size: 0.77rem; font-weight: 800; }
     .etiqueta-pin { text-align: center; }
     .entrada-pin { display: flex; position: relative; justify-content: center; gap: 0.4rem; margin: 0.4rem auto 0.15rem; max-width: 15rem; border-radius: 0.7rem; }
-    .entrada-pin:focus-within { outline: 2px solid var(--color-rojo); outline-offset: 3px; }
+    .entrada-pin:focus-within { outline: none; }
     .entrada-pin input { position: absolute; inset: 0; box-sizing: border-box; width: 100%; opacity: 0; cursor: text; }
     .digito { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 0.65rem; background: var(--color-suave); color: var(--color-dorado); font-size: 0.95rem; }
     .digito.relleno { background: var(--color-tarjeta-oscura); }
-    .digito.actual { box-shadow: inset 0 0 0 1px var(--color-rojo); }
+    .digito.actual { box-shadow: none; }
     .teclado { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; margin-top: 0.55rem; }
     button { min-height: 44px; border-radius: 0.65rem; border: 1px solid var(--color-borde); background: var(--color-superficie); color: var(--color-primario); font: 700 1.14rem var(--fuente-etiqueta); cursor: pointer; box-shadow: var(--sombra-tarjeta); }
     button:disabled { opacity: 0.55; cursor: default; }
@@ -52,7 +52,7 @@ class CrgAcceso extends LitElement {
     .ayuda { min-height: 44px; display: inline-flex; align-items: center; font-size: 0.77rem; color: var(--color-gris); cursor: pointer; }
     details p { padding-bottom: 0.45rem; color: var(--color-gris); font-size: 0.77rem; }
     .volver { border: 0; background: transparent; box-shadow: none; padding: 0; text-align: start; }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   connectedCallback() {

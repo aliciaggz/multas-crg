@@ -55,7 +55,7 @@ export class CrgOperacion extends LitElement {
       font: 700 0.85rem var(--fuente-texto); cursor: pointer;
     }
     button.principal { background: var(--color-tarjeta-oscura); color: white; }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   private decidir(decision: Decision) {

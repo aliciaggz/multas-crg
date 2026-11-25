@@ -54,7 +54,7 @@ class CrgAccionesMulta extends LitElement {
     label { display: grid; gap: 0.3rem; margin: 0.5rem 0; font-size: 0.82rem; font-weight: 700; }
     input, textarea { width: 100%; font-weight: 500; }
     .error { margin-top: 0.45rem; color: var(--color-rojo); }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   private abrir(accion: Accion) {

@@ -37,7 +37,7 @@ class CrgCrearTemporada extends LitElement {
     button { margin-top: 0.7rem; border: 0; background: var(--color-rojo); color: white; font-weight: 800; cursor: pointer; }
     button:disabled { opacity: 0.6; cursor: default; }
     .error { margin-top: 0.55rem; color: var(--color-rojo); font-size: 0.82rem; }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   private async crear(evento: SubmitEvent) {

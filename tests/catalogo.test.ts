@@ -28,3 +28,7 @@ test('el catálogo contiene todos los conceptos e importes de la spec', () => {
     importesEsperados,
   );
 });
+
+test('identifica como bono la falta avisada con 4 horas o más', () => {
+  expect(catalogo.find(({ id }) => id === 'ent_falta_con_aviso')?.nombre).toContain('(bono)');
+});

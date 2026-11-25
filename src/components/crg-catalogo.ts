@@ -44,7 +44,7 @@ class CrgCatalogo extends LitElement {
     .escalones span { display: block; font-size: 0.73rem; font-weight: 700; }
     .escalones strong { font: 700 0.95rem var(--fuente-etiqueta); }
     .nota { margin-top: 0.95rem; }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   private grupo(id: 'entreno' | 'partido', nombre: string) {

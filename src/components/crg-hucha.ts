@@ -74,7 +74,7 @@ class CrgHucha extends LitElement {
     .historial { margin-top: 1rem; }
     .historial summary { display: flex; align-items: center; min-height: 44px; font-size: 0.86rem; font-weight: 800; cursor: pointer; }
     .historial li { display: flex; justify-content: space-between; }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
     @media (min-width: 34rem) { .bote img { right: 1.1rem; width: 6.25rem; height: 6.25rem; } }
   `;
 

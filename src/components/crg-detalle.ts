@@ -4,12 +4,11 @@ import { repeat } from 'lit/directives/repeat.js';
 import catalogo from '../data/catalogo.json';
 import type { Destinatario, Multa } from '../data/temporadas-demo';
 import { euros, fechaCorta, importeAbonado, importeVisible, nombreConcepto } from '../lib/presentacion';
-import { contarFaltas, diasHastaVencimiento, estadoMulta, importeRegistro, saldoHucha, saldoJugadora } from '../lib/reglas';
+import { contarFaltas, diasHastaVencimiento, estadoMulta, fechaEnMadrid, importeRegistro, saldoHucha, saldoJugadora } from '../lib/reglas';
+import { progresoEscalones } from '../lib/registro-multas';
 import type { DeclararPago, GestionarStaff } from '../lib/supabase';
 import { aplicaDoble, esTecnico } from '../lib/destinatarios';
 import './crg-acciones-multa';
-
-const niveles = [3, 6, 9];
 
 class CrgDetalle extends LitElement {
   static properties = {
@@ -60,10 +59,13 @@ class CrgDetalle extends LitElement {
     .escalones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; margin-top: 0.5rem; }
     .escalon {
       border: 1px solid var(--color-borde); border-radius: 0.7rem; background: var(--color-fondo);
-      text-align: center; padding: 0.4rem 0.1rem; font: 600 0.73rem var(--fuente-etiqueta);
+      text-align: center; padding: 0.45rem 0.2rem; font: 600 0.73rem var(--fuente-etiqueta);
     }
-    .escalon strong { display: block; margin-top: 0.08rem; font-size: 0.86rem; }
-    .escalon.alcanzado { background: var(--color-suave); border-color: var(--color-gris); }
+    .escalon strong, .escalon span { display: block; margin-top: 0.12rem; }
+    .escalon strong { font-size: 0.86rem; }
+    .escalon span { font-size: 0.65rem; line-height: 1.25; }
+    .escalon.completado { background: var(--color-suave); border-color: var(--color-verde); }
+    .escalon.pendiente { background: var(--color-rojo-claro); border-color: var(--color-rojo); }
     .lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
     .multa { border-left: 3px solid transparent; padding-block: 0.62rem; }
     .multa.vencida { border-left-color: var(--color-rojo); }
@@ -78,7 +80,7 @@ class CrgDetalle extends LitElement {
       font-size: 0.83rem; font-weight: 800; cursor: pointer; box-shadow: var(--sombra-tarjeta);
     }
     details ul, details p { margin-top: 0.5rem; }
-    :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+    :focus-visible { outline: none; }
   `;
 
   private tarjetaMulta(multa: Multa) {
@@ -118,7 +120,8 @@ class CrgDetalle extends LitElement {
     const vencidas = activas.filter((multa) => estadoMulta(multa, this.hoy) === 'vencida');
     const pagadas = this.multas.filter((multa) => multa.estado === 'pagada' && (this.gestionar || importeAbonado(multa) > 0)).sort(porImporte);
     const faltas = contarFaltas(this.multas);
-    const siguiente = niveles.find((nivel) => nivel > faltas);
+    const progreso = progresoEscalones(persona, this.multas, fechaEnMadrid(this.hoy));
+    const siguiente = progreso.find(({ nivel }) => nivel > faltas)?.nivel;
     const saldo = saldoJugadora(this.multas, this.hoy);
 
     return html`
@@ -147,10 +150,15 @@ class CrgDetalle extends LitElement {
           ${siguiente ? `${faltas} de ${siguiente}` : `${faltas} · último escalón alcanzado`}
         </span></div>
         <div class="escalones">
-          ${niveles.map((nivel) => {
+          ${progreso.map(({ nivel, estado, importe, faltasRestantes, incluidoEn }) => {
             const concepto = catalogo.find(({ id }) => id === `esc_${nivel}`)!;
-            return html`<div class=${`escalon ${faltas >= nivel ? 'alcanzado' : ''}`}>
+            const estadoTexto = estado === 'completado' ? '✓ Completado'
+              : estado === 'pendiente' ? `Pendiente · ${euros(importe)}`
+                : estado === 'incluido' ? `Incluido en bono de ${incluidoEn} faltas`
+                  : `Faltan ${faltasRestantes}`;
+            return html`<div class=${`escalon ${estado}`} aria-label="${nivel} faltas: ${estadoTexto}">
               ${nivel} faltas<strong>${euros(importeRegistro(concepto, 1, aplicaDoble(persona)))}</strong>
+              <span>${estadoTexto}</span>
             </div>`;
           })}
         </div>
