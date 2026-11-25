@@ -136,7 +136,9 @@ class CrgJugadoras extends LitElement {
     const alDia = buscadas.filter(({ pendiente }) => !pendiente);
     const grupos = { Todas: buscadas, Pendientes: pendientes, 'Al día': alDia };
     const grupo = grupos[this.filtro];
-    const visibles = this.porDorsal ? [...grupo].sort((a, b) => a.persona.dorsal - b.persona.dorsal) : grupo;
+    const visibles = [...grupo].sort((a, b) => this.porDorsal
+      ? a.persona.dorsal - b.persona.dorsal
+      : Number(b.pendiente) - Number(a.pendiente) || b.saldo - a.saldo);
     const mensajeVacio = !jugadoras.length ? 'Todavía no hay jugadoras registradas'
       : !buscadas.length ? 'No encontramos jugadoras con ese nombre o dorsal'
         : 'No hay jugadoras que coincidan con el filtro seleccionado';

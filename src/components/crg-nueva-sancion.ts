@@ -16,7 +16,7 @@ class CrgNuevaSancion extends LitElement {
     conceptoId: { state: true }, cantidad: { state: true }, minutos: { state: true },
     importeManual: { state: true }, fecha: { state: true }, observacion: { state: true },
     pagadaAhora: { state: true }, guardando: { state: true }, error: { state: true },
-    mensaje: { state: true }, propuesta: { state: true },
+    propuesta: { state: true },
   };
 
   declare temporada: Temporada;
@@ -33,7 +33,6 @@ class CrgNuevaSancion extends LitElement {
   private declare pagadaAhora: boolean;
   private declare guardando: boolean;
   private declare error: string;
-  private declare mensaje: string;
   private declare propuesta: ReturnType<typeof proponerEscalon>;
 
   constructor() {
@@ -45,7 +44,6 @@ class CrgNuevaSancion extends LitElement {
     this.fecha = fechaEnMadrid(new Date());
     this.guardando = false;
     this.error = '';
-    this.mensaje = '';
   }
 
   static styles = css`
@@ -86,10 +84,8 @@ class CrgNuevaSancion extends LitElement {
     .pagar { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; }
     .pagar input { width: 1.2rem; height: 1.2rem; accent-color: var(--color-rojo); }
     .confirmar { background: var(--color-rojo); color: white; border-color: transparent; }
-    .error, .confirmacion { margin-top: 0.65rem; font-size: 0.85rem; font-weight: 700; }
+    .error { margin-top: 0.65rem; font-size: 0.85rem; font-weight: 700; }
     .error { color: var(--color-rojo); }
-    .confirmacion { color: var(--color-verde); }
-    .confirmacion a { display: inline-flex; align-items: center; min-height: 44px; }
     .escalon { margin-top: 0.65rem; }
     .acciones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
     :focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
@@ -110,7 +106,6 @@ class CrgNuevaSancion extends LitElement {
     this.minutos = '';
     this.importeManual = '';
     this.error = '';
-    this.mensaje = '';
   }
 
   private get disponibles(): Destinatario[] {
@@ -152,8 +147,6 @@ class CrgNuevaSancion extends LitElement {
 
     const resultado = await this.enviar(previa.multa);
     if (!resultado?.ok) return;
-    this.mensaje = previa.multa.importe === 0 ? 'Falta registrada con importe de 0 €.' : 'Multa registrada.';
-    if (!resultado.temporada) this.mensaje += ' Actualiza los datos para comprobar el saldo y las faltas.';
     if (previa.cuentaAsistencia && resultado.temporada) {
       this.propuesta = proponerEscalon(destinatario, resultado.temporada.multas, fechaEnMadrid(new Date()));
     }
@@ -165,7 +158,6 @@ class CrgNuevaSancion extends LitElement {
     const resultado = await this.enviar(this.propuesta.multa);
     if (!resultado?.ok) return;
     this.propuesta = undefined;
-    this.mensaje = 'Escalón registrado.';
   }
 
   render() {
@@ -195,14 +187,14 @@ class CrgNuevaSancion extends LitElement {
             <legend>Destinatario</legend>
             ${destinatario ? html`<div class="chips">
               <p class="aviso">${etiquetaDestinatario(destinatario)} · ${esTecnico(destinatario) ? 'Cuerpo técnico' : 'Jugadoras'}</p>
-              <button type="button" @click=${() => { this.fichaElegida = ''; this.busqueda = ''; this.error = ''; this.mensaje = ''; }}>Cambiar destinatario</button>
+              <button type="button" @click=${() => { this.fichaElegida = ''; this.busqueda = ''; this.error = ''; }}>Cambiar destinatario</button>
             </div>` : html`
               <input type="search" aria-label="Buscar jugadora o entrenador por nombre, o jugadora por dorsal"
                 placeholder="Buscar por nombre o dorsal…" .value=${this.busqueda}
                 @input=${(evento: Event) => { this.busqueda = valor(evento); }}>
               <div class="chips">
                 ${coincidencias.map((persona) => html`<button type="button"
-                  @click=${() => { this.fichaElegida = enlaceFicha(persona); this.error = ''; this.mensaje = ''; }}>
+                  @click=${() => { this.fichaElegida = enlaceFicha(persona); this.error = ''; }}>
                   ${etiquetaDestinatario(persona)} · ${esTecnico(persona) ? 'Cuerpo técnico' : 'Jugadoras'}
                 </button>`)}
                 ${!coincidencias.length ? html`<p class="aviso">${busqueda
@@ -249,7 +241,6 @@ class CrgNuevaSancion extends LitElement {
           </div>
         </fieldset>
       </form>
-      ${this.mensaje ? html`<p class="confirmacion" role="status">${this.mensaje} <a href="#inicio">Ver plantilla</a></p>` : nothing}
       ${this.error ? html`<p class="error" role="alert">${this.error}</p>` : nothing}
       ${this.propuesta && destinatario ? html`<section class="escalon" aria-label="Confirmar escalón">
         <p>${destinatario.nombre} lleva ${this.propuesta.faltas} faltas. Corresponde registrar ${euros(this.propuesta.multa.importe)} por el escalón.</p>

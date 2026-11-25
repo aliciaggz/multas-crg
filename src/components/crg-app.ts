@@ -18,6 +18,7 @@ import './crg-header';
 import './crg-hucha';
 import './crg-jugadoras';
 import './crg-nueva-sancion';
+import { CrgOperacion } from './crg-operacion';
 import './crg-pagos-pendientes';
 
 type Perfil = 'jugadoras' | 'entrenadores';
@@ -37,17 +38,20 @@ function leerPerfil(): Perfil | undefined {
   } catch { /* La elección funciona también sin almacenamiento. */ }
 }
 
-const confirmaciones = {
-  marcar_pagada: 'Cobro registrado.', anular_multa: 'Multa anulada.', verificar_pago: 'Pago aceptado.',
-  registrar_gasto: 'Gasto registrado.', editar_hucha_inicial: 'Importe inicial actualizado.',
-  crear_temporada: 'Temporada creada y activada.',
+const operaciones = {
+  marcar_pagada: { carga: 'Registrando cobro…', exito: 'Cobro registrado.' },
+  anular_multa: { carga: 'Anulando multa…', exito: 'Multa anulada.' },
+  verificar_pago: { carga: 'Verificando pago…', exito: 'Pago aceptado.' },
+  registrar_gasto: { carga: 'Registrando gasto…', exito: 'Gasto registrado.' },
+  editar_hucha_inicial: { carga: 'Actualizando importe inicial…', exito: 'Importe inicial actualizado.' },
+  crear_temporada: { carga: 'Creando temporada…', exito: 'Temporada creada y activada.' },
 };
 
 class CrgApp extends LitElement {
   static properties = {
     ruta: { state: true }, temporada: { state: true }, temporadas: { state: true },
     temporadaElegida: { state: true }, cargando: { state: true }, error: { state: true },
-    estadoSesion: { state: true }, avisoStaff: { state: true }, avisoOperacion: { state: true },
+    estadoSesion: { state: true }, avisoStaff: { state: true },
     sinConexion: { state: true }, perfil: { state: true }, actualizadaEn: { state: true },
   };
 
@@ -74,7 +78,6 @@ class CrgApp extends LitElement {
   private declare error: string;
   private declare estadoSesion: EstadoSesion;
   private declare avisoStaff: string;
-  private declare avisoOperacion: string;
   private declare sinConexion: boolean;
 
   constructor() {
@@ -86,7 +89,6 @@ class CrgApp extends LitElement {
     this.error = '';
     this.estadoSesion = 'sin-sesion';
     this.avisoStaff = '';
-    this.avisoOperacion = '';
     this.sinConexion = !navigator.onLine;
   }
 
@@ -210,7 +212,6 @@ class CrgApp extends LitElement {
         this.vueltaFicha = this.ruta === '#pagos-pendientes' ? '#pagos-pendientes' : '#inicio';
       }
       this.intentoAcceso++;
-      this.avisoOperacion = '';
       this.ruta = ruta;
     }
     if (this.perfil === 'jugadoras' && rutasEntrenadores.includes(ruta)) {
@@ -234,7 +235,6 @@ class CrgApp extends LitElement {
     if (perfil === 'jugadoras' && this.#sesion) return;
     const primeraVisita = !this.perfil;
     this.intentoAcceso++;
-    this.avisoOperacion = '';
     const esRutaDeGestion = rutasEntrenadores.includes(this.ruta);
     if (!primeraVisita || (perfil === 'entrenadores' && !esRutaDeGestion)
       || (perfil === 'jugadoras' && esRutaDeGestion)) {
@@ -354,7 +354,6 @@ class CrgApp extends LitElement {
 
   private cambiarTemporada(evento: CustomEvent<string>) {
     if (!this.temporadas.some(({ id }) => id === evento.detail)) return;
-    this.avisoOperacion = '';
     this.temporadaElegida = evento.detail;
     this.temporada = undefined;
     void this.cargarDatos();
@@ -423,7 +422,6 @@ class CrgApp extends LitElement {
     this.#sesion = undefined;
     this.estadoSesion = 'sin-sesion';
     this.avisoStaff = '';
-    this.avisoOperacion = '';
   }
 
   private invalidarSesion(sesion: SesionGuardada) {
@@ -437,7 +435,6 @@ class CrgApp extends LitElement {
     const sesion: SesionGuardada = { token: this.#sesion.token, cierrePendiente: true };
     this.#sesion = sesion;
     this.almacenSesion.guardar(sesion);
-    this.avisoOperacion = '';
     this.estadoSesion = 'cerrando';
 
     try {
@@ -466,42 +463,74 @@ class CrgApp extends LitElement {
     return resultado;
   }
 
-  private guardarMulta = async (multa: RegistroMulta, temporadaId: string): Promise<ResultadoGuardado> => {
-    if (!this.temporada?.activa || this.temporada.id !== temporadaId) {
-      return { ok: false, error: 'Selecciona la temporada activa para registrar la multa.' };
-    }
+  private operar<T extends RespuestaRpc<object>>(
+    carga: string,
+    exito: string | ((resultado: T) => string),
+    rutaRevision: string,
+    escribir: () => Promise<T>,
+  ) {
+    const dialogo = this.renderRoot.querySelector('crg-operacion');
+    if (!(dialogo instanceof CrgOperacion)) return Promise.resolve({ ok: false as const, error: 'Operación no disponible.' });
+    return dialogo.ejecutar({
+      carga, exito,
+      actualizar: async () => Boolean(await this.cargarDatos()),
+      revisar: () => {
+        if (this.ruta !== rutaRevision) this.navegar(rutaRevision);
+      },
+      enfocarContenido: () => this.enfocarContenido(),
+    }, escribir);
+  }
 
-    const resultado = await this.solicitarStaff((token) => registrarMulta(token, multa));
-    if (!resultado.ok) return resultado;
-
-    const temporada = await this.cargarDatos();
-    return { ok: true, temporada: temporada?.id === temporadaId ? temporada : undefined };
+  private guardarMulta = (multa: RegistroMulta, temporadaId: string): Promise<ResultadoGuardado> => {
+    const ruta = multa.tecnico_id ? `#tecnico/${multa.tecnico_id}` : `#jugadora/${multa.jugadora_id}`;
+    const escalon = multa.concepto_id.startsWith('esc_');
+    return this.operar<ResultadoGuardado>(
+      escalon ? 'Guardando escalón…' : 'Guardando multa…',
+      (resultado) => {
+        const mensaje = escalon ? 'Escalón registrado.'
+          : multa.importe === 0 ? 'Falta registrada con importe de 0 €.' : 'Multa registrada.';
+        return resultado.ok && !resultado.temporada ? `${mensaje} Actualiza los datos para ver el cambio.` : mensaje;
+      },
+      ruta,
+      async () => {
+        if (!this.temporada?.activa || this.temporada.id !== temporadaId) {
+          return { ok: false, error: 'Selecciona la temporada activa para registrar la multa.' };
+        }
+        const resultado = await this.solicitarStaff((token) => registrarMulta(token, multa));
+        if (!resultado.ok) return resultado;
+        const temporada = await this.cargarDatos();
+        return { ok: true, temporada: temporada?.id === temporadaId ? temporada : undefined };
+      },
+    );
   };
 
-  private declarar: DeclararPago = async (multaId) => {
-    if (this.sinConexion || !navigator.onLine) return { ok: false, error: 'Conéctate para declarar el pago.' };
-    this.avisoOperacion = '';
-    const resultado = await declararPago(multaId);
-    if (resultado.ok) {
-      const temporada = await this.cargarDatos();
-      const multa = temporada?.multas.find(({ id }) => id === multaId);
-      this.avisoOperacion = multa?.estado === 'pago_declarado'
-        ? 'Pago declarado. El cuerpo técnico lo revisará.' : 'Solicitud enviada. Consulta el estado de la multa.';
-    }
-    return resultado;
-  };
+  private declarar: DeclararPago = (multaId) =>
+    this.operar('Enviando declaración…',
+      (resultado) => resultado.ok ? resultado.mensaje : '',
+      this.ruta, async () => {
+        if (this.sinConexion || !navigator.onLine) return { ok: false, error: 'Conéctate para declarar el pago.' };
+        const resultado = await declararPago(multaId);
+        if (!resultado.ok) return resultado;
+        const temporada = await this.cargarDatos();
+        const multa = temporada?.multas.find(({ id }) => id === multaId);
+        return { ...resultado, mensaje: multa?.estado === 'pago_declarado'
+          ? 'Pago declarado. El cuerpo técnico lo revisará.' : 'Solicitud enviada. Consulta el estado de la multa.' };
+      });
 
-  private gestionar: GestionarStaff = async (operacion) => {
-    this.avisoOperacion = '';
-    const resultado = await this.solicitarStaff((token) => ejecutarGestionStaff(token, operacion));
-    if (!resultado.ok) return resultado;
-
-    if (operacion.funcion === 'crear_temporada') this.temporadaElegida = resultado.id;
-    const temporada = await this.cargarDatos();
-    const mensaje = operacion.funcion === 'verificar_pago' && !operacion.aceptar
-      ? 'Declaración rechazada. La multa vuelve a estar pendiente.' : confirmaciones[operacion.funcion];
-    this.avisoOperacion = temporada ? mensaje : `${mensaje} Actualiza la pantalla para ver el cambio.`;
-    return resultado;
+  private gestionar: GestionarStaff = (operacion) => {
+    const textos = operacion.funcion === 'verificar_pago' && !operacion.aceptar
+      ? { carga: 'Rechazando declaración…', exito: 'Declaración rechazada. La multa vuelve a estar pendiente.' }
+      : operaciones[operacion.funcion];
+    const ruta = operacion.funcion === 'crear_temporada' ? '#inicio' : this.ruta;
+    return this.operar(textos.carga, (resultado) => resultado.ok && !resultado.actualizada
+      ? `${textos.exito} Actualiza los datos para ver el cambio.` : textos.exito,
+      ruta, async () => {
+        const resultado = await this.solicitarStaff((token) => ejecutarGestionStaff(token, operacion));
+        if (!resultado.ok) return resultado;
+        if (operacion.funcion === 'crear_temporada') this.temporadaElegida = resultado.id;
+        const temporada = await this.cargarDatos();
+        return { ...resultado, actualizada: Boolean(temporada) };
+      });
   };
 
   private tarjetaHucha(temporada: Temporada) {
@@ -578,7 +607,6 @@ class CrgApp extends LitElement {
         </p>` : nothing}
         ${!temporada && this.cargando && !esCatalogo ? html`<p class="estado-carga" role="status">Cargando temporada…</p>` : nothing}
         ${esEntrenadores && this.sinConexion ? html`<p class="estado-carga" role="status">El acceso y las operaciones de Entrenadores requieren conexión.</p>` : nothing}
-        ${this.avisoOperacion ? html`<p class="estado-carga" role="status">${this.avisoOperacion}</p>` : nothing}
         ${esCatalogo ? html`<crg-catalogo></crg-catalogo>` : nothing}
         ${esEntrenadores && this.avisoStaff ? html`<p class="estado-carga" role="status">${this.avisoStaff}
           ${!pideAcceso ? html`<a href="#staff">Acceso de entrenadores</a>` : nothing}</p>` : nothing}
@@ -623,6 +651,7 @@ class CrgApp extends LitElement {
             <button type="button" @click=${this.mostrarTemporadaActiva}>Cambiar a la temporada activa</button></p>`) : nothing}
         ` : nothing}
       </main>
+      <crg-operacion></crg-operacion>
       <nav aria-label="Navegación principal">
         <div class="navegacion">
           <a href="#inicio" aria-current=${mostrarInicio ? 'page' : nothing}><span class="icono inicio" aria-hidden="true"></span>Inicio</a>
