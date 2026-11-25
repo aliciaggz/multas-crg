@@ -1,10 +1,10 @@
-import { css, html, LitElement, nothing, type PropertyValues } from "lit";
-import type { Destinatario, Temporada } from "../data/temporadas-demo";
-import { coincideBusquedaJugadora, euros } from "../lib/presentacion";
-import { enlaceFicha, esTecnico, multasDe } from "../lib/destinatarios";
-import { noConvocable, saldoJugadora } from "../lib/reglas";
+import { css, html, LitElement, nothing, type PropertyValues } from 'lit';
+import type { Destinatario, Temporada } from '../data/temporadas-demo';
+import { coincideBusquedaJugadora, euros } from '../lib/presentacion';
+import { enlaceFicha, esTecnico, multasDe } from '../lib/destinatarios';
+import { noConvocable, saldoJugadora } from '../lib/reglas';
 
-const filtros = ["Todas", "Pendientes", "Al día"] as const;
+const filtros = ['Todas', 'Pendientes', 'Al día'] as const;
 type Filtro = (typeof filtros)[number];
 
 class CrgJugadoras extends LitElement {
@@ -29,13 +29,13 @@ class CrgJugadoras extends LitElement {
   constructor() {
     super();
     this.activo = false;
-    this.busqueda = "";
-    this.filtro = "Todas";
+    this.busqueda = '';
+    this.filtro = 'Todas';
     this.porDorsal = false;
   }
 
   protected updated(cambios: PropertyValues) {
-    if (cambios.get("activo") === true && !this.activo) this.busqueda = "";
+    if (cambios.get('activo') === true && !this.activo) this.busqueda = '';
   }
 
   static styles = css`
@@ -47,7 +47,7 @@ class CrgJugadoras extends LitElement {
       display: block;
     }
     .buscador::before {
-      content: "";
+      content: '';
       position: absolute;
       left: 1rem;
       top: 1rem;
@@ -57,7 +57,7 @@ class CrgJugadoras extends LitElement {
       border-radius: 50%;
     }
     .buscador::after {
-      content: "";
+      content: '';
       position: absolute;
       left: 1.67rem;
       top: 1.72rem;
@@ -98,7 +98,7 @@ class CrgJugadoras extends LitElement {
       font: 700 0.76rem var(--fuente-texto);
       cursor: pointer;
     }
-    button[aria-pressed="true"] {
+    button[aria-pressed='true'] {
       background: var(--color-tarjeta-oscura);
       color: white;
       border-color: transparent;
@@ -135,7 +135,7 @@ class CrgJugadoras extends LitElement {
       color: var(--color-primario);
       text-decoration: underline;
     }
-    .opciones .orden[aria-pressed="true"] {
+    .opciones .orden[aria-pressed='true'] {
       color: var(--color-rojo);
     }
     .contador {
@@ -264,44 +264,32 @@ class CrgJugadoras extends LitElement {
       persona,
       saldo: saldoJugadora(multas, this.hoy),
       vencida: noConvocable(multas, this.hoy),
-      pendiente: multas.some(
-        ({ estado }) => estado === "pendiente" || estado === "pago_declarado",
-      ),
+      pendiente: multas.some(({ estado }) => estado === 'pendiente' || estado === 'pago_declarado'),
     };
   }
 
-  private fila({
-    persona,
-    saldo,
-    vencida,
-    pendiente,
-  }: ReturnType<CrgJugadoras["resumen"]>) {
+  private fila({ persona, saldo, vencida, pendiente }: ReturnType<CrgJugadoras['resumen']>) {
     return html`
       <li>
-        <a href=${enlaceFicha(persona)} class=${vencida ? "vencida" : ""}>
-          ${esTecnico(persona)
-            ? html`<span class="dorsal" aria-hidden="true">
-                <img
-                  src=${`${import.meta.env.BASE_URL}nacho-pig-1.png`}
-                  width="42"
-                  height="42"
-                  alt=""
-                />
-              </span>`
-            : html`<span class="dorsal"
-                >#${persona.dorsal}${persona.capitana
-                  ? html`<span class="capitana" aria-label="Capitana">C</span>`
-                  : nothing}</span
-              >`}
+        <a href=${enlaceFicha(persona)} class=${vencida ? 'vencida' : ''}>
+          ${
+            esTecnico(persona)
+              ? html`<span class="dorsal" aria-hidden="true">
+                  <img src=${`${import.meta.env.BASE_URL}nacho-pig-1.png`} width="42" height="42" alt="" />
+                </span>`
+              : html`<span class="dorsal"
+                  >#${persona.dorsal}${
+                    persona.capitana ? html`<span class="capitana" aria-label="Capitana">C</span>` : nothing
+                  }</span
+                >`
+          }
           <span>
             <span class="nombre">${persona.nombre}</span>
-            <span class=${pendiente ? "estado" : "estado al-dia"}>
-              ${vencida ? "No convocable" : pendiente ? "Pendiente" : "Al día"}
+            <span class=${pendiente ? 'estado' : 'estado al-dia'}>
+              ${vencida ? 'No convocable' : pendiente ? 'Pendiente' : 'Al día'}
             </span>
           </span>
-          <span class=${saldo ? "importe" : "importe cero"}
-            >${euros(saldo)}</span
-          >
+          <span class=${saldo ? 'importe' : 'importe cero'}>${euros(saldo)}</span>
           <span class="flecha" aria-hidden="true"></span>
         </a>
       </li>
@@ -309,16 +297,12 @@ class CrgJugadoras extends LitElement {
   }
 
   render() {
-    const jugadoras = this.temporada.jugadoras.map((jugadora) =>
-      this.resumen(jugadora),
-    );
+    const jugadoras = this.temporada.jugadoras.map((jugadora) => this.resumen(jugadora));
     const tecnicos = this.enInicio ? (this.temporada.tecnicos ?? []) : [];
-    const buscadas = jugadoras.filter(({ persona }) =>
-      coincideBusquedaJugadora(persona, this.busqueda),
-    );
+    const buscadas = jugadoras.filter(({ persona }) => coincideBusquedaJugadora(persona, this.busqueda));
     const pendientes = buscadas.filter(({ pendiente }) => pendiente);
     const alDia = buscadas.filter(({ pendiente }) => !pendiente);
-    const grupos = { Todas: buscadas, Pendientes: pendientes, "Al día": alDia };
+    const grupos = { Todas: buscadas, Pendientes: pendientes, 'Al día': alDia };
     const grupo = grupos[this.filtro];
     const visibles = [...grupo].sort((a, b) =>
       this.porDorsal
@@ -326,10 +310,10 @@ class CrgJugadoras extends LitElement {
         : Number(b.pendiente) - Number(a.pendiente) || b.saldo - a.saldo,
     );
     const mensajeVacio = !jugadoras.length
-      ? "Todavía no hay jugadoras registradas"
+      ? 'Todavía no hay jugadoras registradas'
       : !buscadas.length
-        ? "No encontramos jugadoras con ese nombre o dorsal"
-        : "No hay jugadoras que coincidan con el filtro seleccionado";
+        ? 'No encontramos jugadoras con ese nombre o dorsal'
+        : 'No hay jugadoras que coincidan con el filtro seleccionado';
 
     return html`
       <label class="buscador">
@@ -345,7 +329,7 @@ class CrgJugadoras extends LitElement {
         ${filtros.map(
           (filtro) => html`
             <button
-              aria-pressed=${this.filtro === filtro ? "true" : "false"}
+              aria-pressed=${this.filtro === filtro ? 'true' : 'false'}
               @click=${() => {
                 this.filtro = filtro;
               }}
@@ -359,41 +343,43 @@ class CrgJugadoras extends LitElement {
         ${this.enInicio ? html`<h2>Plantilla</h2>` : html`<h1>Plantilla</h1>`}
         <div class="opciones">
           <span class="contador" aria-live="polite"
-            >${visibles.length}
-            ${visibles.length === 1 ? "jugadora" : "jugadoras"}</span
+            >${visibles.length} ${visibles.length === 1 ? 'jugadora' : 'jugadoras'}</span
           >
-          ${jugadoras.length
-            ? html`<button
-                class="orden"
-                type="button"
-                aria-pressed=${String(this.porDorsal)}
-                @click=${() => {
-                  this.porDorsal = !this.porDorsal;
-                }}
-              >
-                Ordenar por dorsal
-              </button>`
-            : ""}
+          ${
+            jugadoras.length
+              ? html`<button
+                  class="orden"
+                  type="button"
+                  aria-pressed=${String(this.porDorsal)}
+                  @click=${() => {
+                    this.porDorsal = !this.porDorsal;
+                  }}
+                >
+                  Ordenar por dorsal
+                </button>`
+              : ''
+          }
         </div>
       </div>
-      ${visibles.length
-        ? html`<ul>
-            ${visibles.map((resumen) => this.fila(resumen))}
-          </ul>`
-        : html`<p class="vacio">${mensajeVacio}.</p>`}
-      ${tecnicos.length
-        ? html` <section
-            class="cuerpo-tecnico"
-            aria-labelledby="titulo-cuerpo-tecnico"
-          >
-            <h2 id="titulo-cuerpo-tecnico">Cuerpo técnico</h2>
-            <ul>
-              ${tecnicos.map((tecnico) => this.fila(this.resumen(tecnico)))}
-            </ul>
-          </section>`
-        : nothing}
+      ${
+        visibles.length
+          ? html`<ul>
+              ${visibles.map((resumen) => this.fila(resumen))}
+            </ul>`
+          : html`<p class="vacio">${mensajeVacio}.</p>`
+      }
+      ${
+        tecnicos.length
+          ? html` <section class="cuerpo-tecnico" aria-labelledby="titulo-cuerpo-tecnico">
+              <h2 id="titulo-cuerpo-tecnico">Cuerpo técnico</h2>
+              <ul>
+                ${tecnicos.map((tecnico) => this.fila(this.resumen(tecnico)))}
+              </ul>
+            </section>`
+          : nothing
+      }
     `;
   }
 }
 
-customElements.define("crg-jugadoras", CrgJugadoras);
+customElements.define('crg-jugadoras', CrgJugadoras);

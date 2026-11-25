@@ -3,8 +3,10 @@ import type { ResumenTemporada } from '../data/temporadas-demo';
 
 class CrgHeader extends LitElement {
   static properties = {
-    temporadas: { attribute: false }, seleccionada: { type: String },
-    haySesion: { type: Boolean }, enEntrenadores: { type: Boolean },
+    temporadas: { attribute: false },
+    seleccionada: { type: String },
+    haySesion: { type: Boolean },
+    enEntrenadores: { type: Boolean },
   };
   declare temporadas: readonly ResumenTemporada[];
   declare seleccionada: string;
@@ -12,7 +14,10 @@ class CrgHeader extends LitElement {
   declare enEntrenadores: boolean;
 
   static styles = css`
-    :host { display: block; border-bottom: 1px solid var(--color-borde); }
+    :host {
+      display: block;
+      border-bottom: 1px solid var(--color-borde);
+    }
     header {
       max-width: var(--ancho-contenido);
       margin: auto;
@@ -27,9 +32,22 @@ class CrgHeader extends LitElement {
       height: 2.75rem;
       object-fit: contain;
     }
-    strong { display: block; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.035em; }
-    .temporada { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.2rem; }
-    .equipo { color: var(--color-rojo); font: 600 0.72rem var(--fuente-etiqueta); }
+    strong {
+      display: block;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+    }
+    .temporada {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      column-gap: 0.2rem;
+    }
+    .equipo {
+      color: var(--color-rojo);
+      font: 600 0.72rem var(--fuente-etiqueta);
+    }
     select {
       min-height: 44px;
       min-width: 4.25rem;
@@ -39,7 +57,8 @@ class CrgHeader extends LitElement {
       font: 700 0.75rem var(--fuente-etiqueta);
       cursor: pointer;
     }
-    summary, .cuenta button {
+    summary,
+    .cuenta button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -55,23 +74,58 @@ class CrgHeader extends LitElement {
       box-shadow: var(--sombra-tarjeta);
       cursor: pointer;
     }
-    details { position: relative; }
-    summary { gap: 0.35rem; list-style: none; }
-    .coaches { color: #67223c; border-color: #67223c; }
-    .en-acceso { font: 700 0.83rem var(--fuente-texto); color: #67223c; }
-    summary::-webkit-details-marker { display: none; }
+    details {
+      position: relative;
+    }
+    summary {
+      gap: 0.35rem;
+      list-style: none;
+    }
+    .coaches {
+      color: #67223c;
+      border-color: #67223c;
+    }
+    .en-acceso {
+      font: 700 0.83rem var(--fuente-texto);
+      color: #67223c;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
     .cuenta {
-      position: absolute; z-index: 3; inset: calc(100% + 0.4rem) 0 auto auto;
-      min-width: 10rem; max-width: 14rem; padding: 0.65rem; border: 1px solid var(--color-borde);
-      border-radius: 0.75rem; background: var(--color-superficie); box-shadow: var(--sombra-tarjeta);
+      position: absolute;
+      z-index: 3;
+      inset: calc(100% + 0.4rem) 0 auto auto;
+      min-width: 10rem;
+      max-width: 14rem;
+      padding: 0.65rem;
+      border: 1px solid var(--color-borde);
+      border-radius: 0.75rem;
+      background: var(--color-superficie);
+      box-shadow: var(--sombra-tarjeta);
     }
-    .cuenta strong { margin-bottom: 0.5rem; font-size: 0.86rem; overflow-wrap: anywhere; }
-    .cuenta button { width: 100%; box-shadow: none; }
+    .cuenta strong {
+      margin-bottom: 0.5rem;
+      font-size: 0.86rem;
+      overflow-wrap: anywhere;
+    }
+    .cuenta button {
+      width: 100%;
+      box-shadow: none;
+    }
     @media (max-width: 25rem) {
-      header { padding-inline: 0.65rem; gap: 0.4rem; }
-      summary, .en-acceso { font-size: 0.76rem; }
+      header {
+        padding-inline: 0.65rem;
+        gap: 0.4rem;
+      }
+      summary,
+      .en-acceso {
+        font-size: 0.76rem;
+      }
     }
-    :focus-visible { outline: none; }
+    :focus-visible {
+      outline: none;
+    }
   `;
 
   private cambiarTemporada(evento: Event) {
@@ -97,34 +151,50 @@ class CrgHeader extends LitElement {
   render() {
     return html`
       <header>
-        <img class="escudo" src=${`${import.meta.env.BASE_URL}iconos/escudo-guindalera.png`} width="44" height="44" alt="">
+        <img
+          class="escudo"
+          src=${`${import.meta.env.BASE_URL}iconos/escudo-guindalera.png`}
+          width="44"
+          height="44"
+          alt=""
+        />
         <div>
           <strong>CR Guindalera</strong>
           <div class="temporada">
             <span class="equipo">Senior femenino</span>
-            ${this.temporadas.length ? html`
-              <select aria-label="Temporada" @change=${this.cambiarTemporada}>
-                ${this.temporadas.map((temporada) => html`
-                  <option value=${temporada.id} .selected=${temporada.id === this.seleccionada}>${temporada.nombre}</option>
-                `)}
-              </select>
-            ` : nothing}
+            ${
+              this.temporadas.length
+                ? html`
+                    <select aria-label="Temporada" @change=${this.cambiarTemporada}>
+                      ${this.temporadas.map(
+                        (temporada) => html`
+                          <option value=${temporada.id} .selected=${temporada.id === this.seleccionada}>
+                            ${temporada.nombre}
+                          </option>
+                        `,
+                      )}
+                    </select>
+                  `
+                : nothing
+            }
           </div>
         </div>
-        ${this.enEntrenadores && !this.haySesion ? html`
-          <span class="en-acceso">Entrenadores</span>
-        ` : html`
-          <details @keydown=${this.cerrarMenuConEscape}>
-            <summary class=${this.haySesion ? 'Entrenadores' : nothing}>
-              ${this.haySesion ? 'Entrenadores' : 'Jugadoras'} <span aria-hidden="true">▾</span>
-            </summary>
-            <div class="cuenta">
-              <button type="button" @click=${this.accionarMenu}>
-                ${this.haySesion ? 'Cerrar sesión' : 'Acceder como entrenador'}
-              </button>
-            </div>
-          </details>
-        `}
+        ${
+          this.enEntrenadores && !this.haySesion
+            ? html` <span class="en-acceso">Entrenadores</span> `
+            : html`
+                <details @keydown=${this.cerrarMenuConEscape}>
+                  <summary class=${this.haySesion ? 'Entrenadores' : nothing}>
+                    ${this.haySesion ? 'Entrenadores' : 'Jugadoras'} <span aria-hidden="true">▾</span>
+                  </summary>
+                  <div class="cuenta">
+                    <button type="button" @click=${this.accionarMenu}>
+                      ${this.haySesion ? 'Cerrar sesión' : 'Acceder como entrenador'}
+                    </button>
+                  </div>
+                </details>
+              `
+        }
       </header>
     `;
   }

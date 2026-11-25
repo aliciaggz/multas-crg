@@ -39,7 +39,9 @@ test('guarda una proyección pública y deja fuera credenciales y campos adicion
 });
 
 test('tolera almacenamiento no disponible o datos corruptos', () => {
-  const sinPermiso = () => { throw new Error('Almacenamiento no disponible'); };
+  const sinPermiso = () => {
+    throw new Error('Almacenamiento no disponible');
+  };
   const bloqueado = crearDatosGuardados('https://club.example', { getItem: sinPermiso, setItem: sinPermiso });
   expect(() => bloqueado.guardar({ temporadas, temporada: activa })).not.toThrow();
   expect(bloqueado.leer().temporadas).toEqual([]);
@@ -83,8 +85,16 @@ test('conserva las fichas y multas del cuerpo técnico en la copia pública', ()
   const memoria = almacenamientoPrueba();
   const guardados = crearDatosGuardados('https://club.example', memoria);
   const tecnico = { id: 'nacho', nombre: 'Nacho', tipo: 'tecnico' as const, activo: true, cuenta: 'privada' };
-  const multa = { tecnico_id: tecnico.id, concepto_id: 'ent_tarde', importe: 4, fecha: '2026-11-23', estado: 'pendiente' as const };
+  const multa = {
+    tecnico_id: tecnico.id,
+    concepto_id: 'ent_tarde',
+    importe: 4,
+    fecha: '2026-11-23',
+    estado: 'pendiente' as const,
+  };
   guardados.guardar({ temporadas, temporada: { ...activa, tecnicos: [tecnico], multas: [multa] } });
-  expect(guardados.leer().temporada?.tecnicos).toEqual([{ id: tecnico.id, nombre: 'Nacho', tipo: 'tecnico', activo: true }]);
+  expect(guardados.leer().temporada?.tecnicos).toEqual([
+    { id: tecnico.id, nombre: 'Nacho', tipo: 'tecnico', activo: true },
+  ]);
   expect(guardados.leer().temporada?.multas).toMatchObject([multa]);
 });

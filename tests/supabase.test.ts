@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { cerrarSesionStaff, declararPago, ejecutarGestionStaff, iniciarSesionStaff, leerDatosPublicos, registrarMulta, validarSesionStaff, type GestionStaff } from '../src/lib/supabase';
+import {
+  cerrarSesionStaff,
+  declararPago,
+  ejecutarGestionStaff,
+  iniciarSesionStaff,
+  leerDatosPublicos,
+  registrarMulta,
+  validarSesionStaff,
+  type GestionStaff,
+} from '../src/lib/supabase';
 
 const temporadas = [
   { id: 'anterior', nombre: '2025/26', activa: false, hucha_inicial: 60 },
@@ -10,8 +19,14 @@ const jugadoras = [
   { id: 'ines', nombre: 'Inés', dorsal: 12, capitana: false, activa: false },
 ];
 const multaHistorica = {
-  jugadora_id: 'ines', concepto_id: 'ent_tarde', fecha: '2026-05-03', estado: 'pagada',
-  importe: 2, importe_cobrado: 4, fecha_pago: '2026-05-20', declarada_en: null,
+  jugadora_id: 'ines',
+  concepto_id: 'ent_tarde',
+  fecha: '2026-05-03',
+  estado: 'pagada',
+  importe: 2,
+  importe_cobrado: 4,
+  fecha_pago: '2026-05-20',
+  declarada_en: null,
 };
 
 beforeEach(() => {
@@ -41,39 +56,66 @@ test('elige la temporada activa y consulta solo las multas y gastos de la tempor
   const actual = await leerDatosPublicos();
   const anterior = await leerDatosPublicos('anterior');
 
-  expect(actual.temporada).toMatchObject({ id: 'activa', huchaInicial: 100, jugadoras: [{ id: 'ana' }],
-    tecnicos: [{ id: 'jaime', tipo: 'tecnico' }], multas: [{ tecnico_id: 'jaime' }] });
-  expect(anterior.temporada).toMatchObject({ id: 'anterior', huchaInicial: 60, jugadoras: [{ id: 'ana' }, { id: 'ines' }] });
+  expect(actual.temporada).toMatchObject({
+    id: 'activa',
+    huchaInicial: 100,
+    jugadoras: [{ id: 'ana' }],
+    tecnicos: [{ id: 'jaime', tipo: 'tecnico' }],
+    multas: [{ tecnico_id: 'jaime' }],
+  });
+  expect(anterior.temporada).toMatchObject({
+    id: 'anterior',
+    huchaInicial: 60,
+    jugadoras: [{ id: 'ana' }, { id: 'ines' }],
+  });
   expect(actual.temporada.multas[0]).not.toHaveProperty('jugadora_id');
   expect(anterior.temporada.multas[0]).toMatchObject({ importe: 2, importe_cobrado: 4, declarada_en: undefined });
   expect(anterior.temporada.gastos).toHaveLength(1);
   for (const tabla of ['multas', 'gastos_hucha']) {
-    expect(fetchPrueba.mock.calls.filter(([url]) => url.pathname.endsWith(`/${tabla}`))
-      .map(([url]) => url.searchParams.get('temporada_id'))).toEqual(['eq.activa', 'eq.anterior']);
+    expect(
+      fetchPrueba.mock.calls
+        .filter(([url]) => url.pathname.endsWith(`/${tabla}`))
+        .map(([url]) => url.searchParams.get('temporada_id')),
+    ).toEqual(['eq.activa', 'eq.anterior']);
   }
 });
 
 test('un error de lectura se devuelve a la interfaz', async () => {
-  vi.stubGlobal('fetch', vi.fn(async () => Response.json({ code: '42501' }, { status: 403 })));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json({ code: '42501' }, { status: 403 })),
+  );
 
   await expect(leerDatosPublicos()).rejects.toThrow('temporadas: HTTP 403 42501');
 });
 
 test('envía solo el PIN al acceso y solo el token de sesión al validar, escribir y cerrar', async () => {
   const token = 'a'.repeat(64);
-  const fetchPrueba = vi.fn(async (url: URL, _opciones: RequestInit) => Response.json({
-    iniciar_sesion_staff: { ok: true, usuario: 'pruebas', token },
-    validar_sesion_staff: { ok: true, usuario: 'pruebas' },
-    registrar_multa_sesion: { ok: true, id: 'multa' },
-    registrar_multa_tecnico_sesion: { ok: true, id: 'multa-tecnico' },
-    cerrar_sesion_staff: { ok: true },
-  }[url.pathname.split('/').at(-1) ?? '']));
+  const fetchPrueba = vi.fn(async (url: URL, _opciones: RequestInit) =>
+    Response.json(
+      {
+        iniciar_sesion_staff: { ok: true, usuario: 'pruebas', token },
+        validar_sesion_staff: { ok: true, usuario: 'pruebas' },
+        registrar_multa_sesion: { ok: true, id: 'multa' },
+        registrar_multa_tecnico_sesion: { ok: true, id: 'multa-tecnico' },
+        cerrar_sesion_staff: { ok: true },
+      }[url.pathname.split('/').at(-1) ?? ''],
+    ),
+  );
   vi.stubGlobal('fetch', fetchPrueba);
 
   expect(await iniciarSesionStaff('0000')).toEqual({ ok: true, usuario: 'pruebas', token });
   expect(await validarSesionStaff(token)).toEqual({ ok: true, usuario: 'pruebas' });
-  const multa = { jugadora_id: 'jugadora', concepto_id: 'ent_tarde', importe: 4,
-    multiplicador: 2 as const, cantidad: 1, fecha: '2026-11-22', observacion: null, pagada_ahora: false };
+  const multa = {
+    jugadora_id: 'jugadora',
+    concepto_id: 'ent_tarde',
+    importe: 4,
+    multiplicador: 2 as const,
+    cantidad: 1,
+    fecha: '2026-11-22',
+    observacion: null,
+    pagada_ahora: false,
+  };
   expect(await registrarMulta(token, multa)).toEqual({ ok: true, id: 'multa' });
   const { jugadora_id: _, ...datos } = multa;
   const multaTecnico = { ...datos, tecnico_id: 'jaime' };
@@ -115,16 +157,23 @@ test('declara públicamente y envía cada operación de gestión con su firma de
     expect(await ejecutarGestionStaff(token, operacion)).toEqual({ ok: true });
   }
   const llamadas = fetchPrueba.mock.calls.map(([url, opciones]) => ({
-    ruta: url.pathname, cuerpo: JSON.parse(String(opciones.body)),
+    ruta: url.pathname,
+    cuerpo: JSON.parse(String(opciones.body)),
   }));
   expect(llamadas).toEqual([
     { ruta: '/rest/v1/rpc/declarar_pago', cuerpo: { multa_id: 'm1' } },
-    ...operaciones.map(({ funcion, ...datos }) => ({ ruta: `/rest/v1/rpc/${funcion}_sesion`, cuerpo: { token, ...datos } })),
+    ...operaciones.map(({ funcion, ...datos }) => ({
+      ruta: `/rest/v1/rpc/${funcion}_sesion`,
+      cuerpo: { token, ...datos },
+    })),
   ]);
 });
 
 test('una respuesta de escritura sin confirmación no se interpreta como un rechazo confirmado', async () => {
-  vi.stubGlobal('fetch', vi.fn(async () => Response.json({})));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json({})),
+  );
 
   await expect(declararPago('m1')).rejects.toThrow('No se recibió una confirmación válida');
 });

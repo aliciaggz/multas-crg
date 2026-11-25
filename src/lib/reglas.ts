@@ -22,9 +22,7 @@ const formatoFechaMadrid = new Intl.DateTimeFormat('es-ES', {
   day: '2-digit',
 });
 
-const conceptosAsistencia = new Set(
-  catalogo.filter(({ cuenta_asistencia }) => cuenta_asistencia).map(({ id }) => id),
-);
+const conceptosAsistencia = new Set(catalogo.filter(({ cuenta_asistencia }) => cuenta_asistencia).map(({ id }) => id));
 
 const escalones = [
   { faltas: 9, id: 'esc_9' },
@@ -53,9 +51,8 @@ export function conceptoTardanzaPartido(minutos: number): 'par_tarde' | 'par_tar
 
 /** Cuenta las faltas de una jugadora en una sola temporada. */
 export function contarFaltas(multas: readonly MultaAsistencia[]): number {
-  return multas.filter(({ concepto_id, estado }) =>
-    estado !== 'anulada' && conceptosAsistencia.has(concepto_id),
-  ).length;
+  return multas.filter(({ concepto_id, estado }) => estado !== 'anulada' && conceptosAsistencia.has(concepto_id))
+    .length;
 }
 
 /** Los importes base registrados excluyen los multiplicadores de capitana y vencimiento. */
@@ -69,9 +66,7 @@ export function escalonesPendientes(
   }
 
   const importeRegistrado = registrados
-    .filter(({ concepto_id, estado }) =>
-      estado !== 'anulada' && escalones.some(({ id }) => id === concepto_id),
-    )
+    .filter(({ concepto_id, estado }) => estado !== 'anulada' && escalones.some(({ id }) => id === concepto_id))
     .reduce((total, { importeBase }) => total + importeBase, 0);
   const importe = conceptoCatalogo(escalon.id).importe - importeRegistrado;
 
@@ -97,9 +92,7 @@ export function fechaEnMadrid(fecha: string | Date): string {
   }
 
   const instante = typeof fecha === 'string' ? new Date(fecha) : fecha;
-  const partes = Object.fromEntries(formatoFechaMadrid.formatToParts(instante).map(
-    ({ type, value }) => [type, value],
-  ));
+  const partes = Object.fromEntries(formatoFechaMadrid.formatToParts(instante).map(({ type, value }) => [type, value]));
   return `${partes.year}-${partes.month}-${partes.day}`;
 }
 
@@ -111,9 +104,7 @@ export function diasHastaVencimiento(fecha: string, hoy: string | Date): number 
 
 /** La fecha de la multa y el día 15 son fechas de calendario en Madrid. */
 export function estaVencida(multa: MultaConFecha, hoy: string | Date): boolean {
-  const referencia = multa.estado === 'pago_declarado'
-    ? multa.declarada_en
-    : multa.estado === 'pendiente' ? hoy : null;
+  const referencia = multa.estado === 'pago_declarado' ? multa.declarada_en : multa.estado === 'pendiente' ? hoy : null;
   if (referencia == null) {
     return false;
   }
@@ -134,10 +125,7 @@ export function noConvocable(multas: readonly MultaConFecha[], hoy: string | Dat
 }
 
 function sumarImportes(inicial: number, importes: readonly number[]): number {
-  const centimos = importes.reduce(
-    (total, importe) => total + Math.round(importe * 100),
-    Math.round(inicial * 100),
-  );
+  const centimos = importes.reduce((total, importe) => total + Math.round(importe * 100), Math.round(inicial * 100));
   return centimos / 100;
 }
 

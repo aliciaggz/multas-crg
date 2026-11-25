@@ -17,7 +17,8 @@ export function referenciaDe(persona: Destinatario): ReferenciaMulta {
 }
 
 export function multasDe(persona: Destinatario, multas: readonly Multa[]): Multa[] {
-  return esTecnico(persona) ? multas.filter((multa) => multa.tecnico_id === persona.id)
+  return esTecnico(persona)
+    ? multas.filter((multa) => multa.tecnico_id === persona.id)
     : multas.filter((multa) => multa.jugadora_id === persona.id);
 }
 

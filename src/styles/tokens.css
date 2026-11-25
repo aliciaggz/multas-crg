@@ -1,14 +1,14 @@
 @font-face {
-  font-family: "Plus Jakarta Sans";
-  src: url("/fuentes/plus-jakarta-sans.woff2") format("woff2");
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fuentes/plus-jakarta-sans.woff2') format('woff2');
   font-weight: 400 800;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Space Grotesk";
-  src: url("/fuentes/space-grotesk.woff2") format("woff2");
+  font-family: 'Space Grotesk';
+  src: url('/fuentes/space-grotesk.woff2') format('woff2');
   font-weight: 500 700;
   font-style: normal;
   font-display: swap;
@@ -29,8 +29,8 @@
   --color-suave: #eef2f8;
   --color-verde: #067058;
   --color-verde-claro: #e9f7ef;
-  --fuente-texto: "Plus Jakarta Sans", system-ui, sans-serif;
-  --fuente-etiqueta: "Space Grotesk", var(--fuente-texto);
+  --fuente-texto: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --fuente-etiqueta: 'Space Grotesk', var(--fuente-texto);
   --ancho-contenido: 39rem;
   --radio-tarjeta: 1.125rem;
   --sombra-tarjeta: 0 1px 3px rgb(15 23 42 / 5%);

@@ -24,7 +24,13 @@ export const nombreConcepto = (id: string) =>
 
 export function coincideBusquedaJugadora(persona: Destinatario, texto: string): boolean {
   const termino = texto.trim().replace(/^#/, '');
-  const normalizar = (valor: string) => valor.toLocaleLowerCase('es').normalize('NFD').replace(/\p{Diacritic}/gu, '');
-  return normalizar(persona.nombre).includes(normalizar(termino))
-    || (!esTecnico(persona) && String(persona.dorsal).includes(termino));
+  const normalizar = (valor: string) =>
+    valor
+      .toLocaleLowerCase('es')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '');
+  return (
+    normalizar(persona.nombre).includes(normalizar(termino)) ||
+    (!esTecnico(persona) && String(persona.dorsal).includes(termino))
+  );
 }

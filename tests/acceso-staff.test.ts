@@ -6,7 +6,8 @@ const tokenNuevo = 'b'.repeat(64);
 
 test('respeta la espera indicada por Supabase desde el primer intento de esta pestaña', async () => {
   let ahora = 0;
-  const verificar = vi.fn()
+  const verificar = vi
+    .fn()
     .mockResolvedValueOnce({ ok: false, error: 'No autorizado', reintentar_en: 12 })
     .mockResolvedValueOnce({ ok: true, usuario: 'nacho', token });
   const acceso = crearAccesoStaff(verificar, () => ahora);
@@ -21,7 +22,9 @@ test('respeta la espera indicada por Supabase desde el primer intento de esta pe
 });
 
 test('un fallo de red y un PIN rechazado sin espera no activan un bloqueo local', async () => {
-  const verificar = vi.fn().mockRejectedValueOnce(new Error('Sin conexión'))
+  const verificar = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('Sin conexión'))
     .mockResolvedValue({ ok: false, error: 'No autorizado' });
   const acceso = crearAccesoStaff(verificar, () => 0);
   await expect(acceso.intentar('0000')).rejects.toThrow('Sin conexión');
@@ -48,7 +51,10 @@ test('recupera el cierre pendiente por proyecto y deja fuera cualquier PIN o nom
   acceso.guardar(sesion);
 
   expect([...valores.values()]).toEqual([JSON.stringify({ token, cierrePendiente: true })]);
-  expect(crearAlmacenSesionStaff('https://multas.example.test', memoria).leer()).toEqual({ token, cierrePendiente: true });
+  expect(crearAlmacenSesionStaff('https://multas.example.test', memoria).leer()).toEqual({
+    token,
+    cierrePendiente: true,
+  });
   expect(crearAlmacenSesionStaff('https://otro.example.test', memoria).leer()).toBeUndefined();
 
   acceso.guardar({ token: tokenNuevo });

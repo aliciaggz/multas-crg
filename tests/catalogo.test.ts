@@ -24,9 +24,7 @@ test('el catálogo contiene todos los conceptos e importes de la spec', () => {
   };
 
   expect(catalogo).toHaveLength(Object.keys(importesEsperados).length);
-  expect(Object.fromEntries(catalogo.map(({ id, importe }) => [id, importe]))).toEqual(
-    importesEsperados,
-  );
+  expect(Object.fromEntries(catalogo.map(({ id, importe }) => [id, importe]))).toEqual(importesEsperados);
 });
 
 test('identifica como bono la falta avisada con 4 horas o más', () => {

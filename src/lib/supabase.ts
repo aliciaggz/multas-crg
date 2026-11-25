@@ -18,14 +18,20 @@ type Tabla = 'temporadas' | 'jugadoras' | 'cuerpo_tecnico' | 'multas' | 'gastos_
 
 export type RespuestaRpc<T extends object> = ({ ok: true } & T) | { ok: false; error: string };
 
-export type RespuestaInicioSesion = { ok: true; usuario: string; token: string }
-  | { ok: false; error: string; reintentar_en?: number };
+export type RespuestaInicioSesion =
+  { ok: true; usuario: string; token: string } | { ok: false; error: string; reintentar_en?: number };
 
 export type GestionStaff =
   | { funcion: 'marcar_pagada'; multa_id: string; fecha_pago: string }
   | { funcion: 'anular_multa'; multa_id: string; motivo: string }
   | { funcion: 'verificar_pago'; multa_id: string; aceptar: boolean; fecha_pago: string | null }
-  | { funcion: 'registrar_gasto' | 'editar_hucha_inicial'; temporada_id: string; importe: number; motivo: string; fecha: string }
+  | {
+      funcion: 'registrar_gasto' | 'editar_hucha_inicial';
+      temporada_id: string;
+      importe: number;
+      motivo: string;
+      fecha: string;
+    }
   | { funcion: 'crear_temporada'; nombre: string; hucha_inicial: number | null };
 
 export type ResultadoGestion = RespuestaRpc<{ id?: string }>;
@@ -42,11 +48,7 @@ function configuracionSupabase() {
   return { urlProyecto, clave };
 }
 
-export async function leer<T>(
-  tabla: Tabla,
-  columnas: string,
-  filtros: Record<string, string> = {},
-): Promise<T[]> {
+export async function leer<T>(tabla: Tabla, columnas: string, filtros: Record<string, string> = {}): Promise<T[]> {
   const { urlProyecto, clave } = configuracionSupabase();
 
   const url = new URL(`/rest/v1/${tabla}`, urlProyecto);
@@ -70,9 +72,7 @@ export async function leer<T>(
 
     if (!respuesta.ok) {
       const detalle = await respuesta.json().catch(() => null);
-      throw new Error(
-        `${tabla}: HTTP ${respuesta.status} ${detalle?.code ?? ''} ${detalle?.message ?? ''}`.trim(),
-      );
+      throw new Error(`${tabla}: HTTP ${respuesta.status} ${detalle?.code ?? ''} ${detalle?.message ?? ''}`.trim());
     }
 
     const pagina: T[] = await respuesta.json();
@@ -84,7 +84,8 @@ export async function leer<T>(
 export async function leerDatosPublicos(idElegida?: string) {
   const filas = await leer<FilaTemporada>('temporadas', 'id,nombre,activa,hucha_inicial,historial_hucha_inicial');
   const temporadas = filas.map(({ hucha_inicial, historial_hucha_inicial, ...fila }) => ({
-    ...fila, huchaInicial: hucha_inicial,
+    ...fila,
+    huchaInicial: hucha_inicial,
     historialHuchaInicial: historial_hucha_inicial ?? [],
   }));
   temporadas.sort((a, b) => Number(b.activa) - Number(a.activa) || b.nombre.localeCompare(a.nombre, 'es'));
@@ -105,12 +106,16 @@ export async function leerDatosPublicos(idElegida?: string) {
   ]);
 
   // La tabla jugadoras es común. Conserva también las bajas con historial en la temporada.
-  const conHistorial = new Set(multas.filter(({ estado }) => estado !== 'anulada').map(({ jugadora_id }) => jugadora_id));
+  const conHistorial = new Set(
+    multas.filter(({ estado }) => estado !== 'anulada').map(({ jugadora_id }) => jugadora_id),
+  );
   const temporada: Temporada = {
     ...elegida,
-    jugadoras: jugadoras.filter(({ activa, id }) => activa || conHistorial.has(id))
+    jugadoras: jugadoras
+      .filter(({ activa, id }) => activa || conHistorial.has(id))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
-    tecnicos: tecnicos.filter(({ activo, id }) => activo || multas.some(({ tecnico_id }) => tecnico_id === id))
+    tecnicos: tecnicos
+      .filter(({ activo, id }) => activo || multas.some(({ tecnico_id }) => tecnico_id === id))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
       .map((tecnico) => ({ ...tecnico, tipo: 'tecnico' })),
     multas: multas.map(({ declarada_en, fecha_pago, tecnico_id, jugadora_id, ...multa }) => {
@@ -125,14 +130,23 @@ export async function leerDatosPublicos(idElegida?: string) {
   return { temporadas, temporada };
 }
 
-type FuncionRpc = 'iniciar_sesion_staff' | 'validar_sesion_staff' | 'cerrar_sesion_staff'
-  | 'registrar_multa_sesion' | 'registrar_multa_tecnico_sesion' | 'declarar_pago' | `${GestionStaff['funcion']}_sesion`;
+type FuncionRpc =
+  | 'iniciar_sesion_staff'
+  | 'validar_sesion_staff'
+  | 'cerrar_sesion_staff'
+  | 'registrar_multa_sesion'
+  | 'registrar_multa_tecnico_sesion'
+  | 'declarar_pago'
+  | `${GestionStaff['funcion']}_sesion`;
 
 async function llamarRpc<T extends object>(funcion: FuncionRpc, parametros: object): Promise<RespuestaRpc<T>> {
   const { urlProyecto, clave } = configuracionSupabase();
   const respuesta = await fetch(new URL(`/rest/v1/rpc/${funcion}`, urlProyecto), {
-    method: 'POST', headers: { apikey: clave, 'Content-Type': 'application/json' },
-    body: JSON.stringify(parametros), cache: 'no-store', signal: AbortSignal.timeout(15_000),
+    method: 'POST',
+    headers: { apikey: clave, 'Content-Type': 'application/json' },
+    body: JSON.stringify(parametros),
+    cache: 'no-store',
+    signal: AbortSignal.timeout(15_000),
   });
   if (!respuesta.ok) throw new Error(`Supabase: HTTP ${respuesta.status}`);
   return respuesta.json();
